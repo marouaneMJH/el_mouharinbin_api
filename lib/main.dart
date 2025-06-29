@@ -1,10 +1,7 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -19,36 +16,200 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
+      home: const MainScreen(),
+    );
+  }
+}
 
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('NO FAP!', style: TextStyle(fontWeight: FontWeight.bold)),
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  late DateTime startDate;
+
+  @override
+  void initState() {
+    super.initState();
+    startDate = DateTime(2024, 1, 1); // Default start date
+  }
+
+  void resetStartDate() {
+    setState(() {
+      startDate = DateTime.now();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'NO FAP!',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
+      ),
+      body: HomePage(startDate: startDate),
+      backgroundColor: Colors.black,
+      floatingActionButton: ResetButton(onReset: resetStartDate),
+      drawer: const BadgesDrawer(),
+      bottomNavigationBar: const AppBottomNavBar(),
+    );
+  }
+}
 
-        body: HomePage(),
-        backgroundColor: Colors.black,
-        floatingActionButton: ResetToLoserButton(),
-        drawer: DrawerAllBadges(),
+// Constants
+class AppConstants {
+  static const double badgeImageSize = 150;
+  static const double avatarSize = 60;
+  static const double progressCircleSize = 200;
+  static const double progressStrokeWidth = 5.0;
 
-        bottomNavigationBar: BottomNavBar(),
+  static const List<BadgeConfig> badges = [
+    BadgeConfig(title: "Clown", days: 0, imagePath: "assets/images/loser.png"),
+    BadgeConfig(
+      title: "Beginner",
+      days: 30,
+      imagePath: "assets/images/loser.png",
+    ),
+    BadgeConfig(
+      title: "Warrior",
+      days: 60,
+      imagePath: "assets/images/loser.png",
+    ),
+    BadgeConfig(
+      title: "Absolute Chad",
+      days: 90,
+      imagePath: "assets/images/chad.png",
+    ),
+    BadgeConfig(title: "Broo", days: 500, imagePath: "assets/images/loser.png"),
+  ];
+}
+
+class BadgeConfig {
+  final String title;
+  final int days;
+  final String imagePath;
+
+  const BadgeConfig({
+    required this.title,
+    required this.days,
+    required this.imagePath,
+  });
+}
+
+class Badge {
+  final String title;
+  final String imagePath;
+  final int days;
+  final DateTime startDate;
+
+  Badge({
+    required this.title,
+    required this.imagePath,
+    required this.days,
+    required this.startDate,
+  });
+}
+
+// Utilities
+class BadgeCalculator {
+  static Badge calculateCurrentBadge(DateTime startDate) {
+    final daysSince = DateTime.now().difference(startDate).inDays;
+
+    final config = AppConstants.badges.lastWhere(
+      (badge) => daysSince >= badge.days,
+      orElse: () => AppConstants.badges.first,
+    );
+
+    return Badge(
+      title: config.title,
+      imagePath: config.imagePath,
+      days: daysSince,
+      startDate: startDate,
+    );
+  }
+
+  static double calculateDayProgress() {
+    final now = DateTime.now();
+    final secondsElapsed = now.hour * 3600 + now.minute * 60 + now.second;
+    return secondsElapsed / (24 * 3600);
+  }
+}
+
+// Widgets
+class HomePage extends StatelessWidget {
+  final DateTime startDate;
+
+  const HomePage({super.key, required this.startDate});
+
+  @override
+  Widget build(BuildContext context) {
+    final badge = BadgeCalculator.calculateCurrentBadge(startDate);
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          BadgeDisplay(badge: badge),
+          const SizedBox(height: 30),
+          ProgressCounter(badge: badge),
+        ],
       ),
     );
   }
 }
 
-class CurrentBadgeImages extends StatelessWidget {
+class BadgeDisplay extends StatelessWidget {
+  final Badge badge;
+
+  const BadgeDisplay({super.key, required this.badge});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 110),
+          child: BadgeTitleBox(title: badge.title),
+        ),
+        Positioned(
+          top: 0,
+          child: CircularImage(
+            imagePath: badge.imagePath,
+            size: AppConstants.badgeImageSize,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class CircularImage extends StatelessWidget {
   final String imagePath;
-  const CurrentBadgeImages({super.key, required this.imagePath});
+  final double size;
+  final double borderWidth;
+
+  const CircularImage({
+    super.key,
+    required this.imagePath,
+    required this.size,
+    this.borderWidth = 4,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 150,
-      height: 150,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         image: DecorationImage(image: AssetImage(imagePath), fit: BoxFit.cover),
-        border: Border.all(color: Colors.black, width: 4),
+        border: Border.all(color: Colors.black, width: borderWidth),
       ),
     );
   }
@@ -60,103 +221,68 @@ class BadgeTitleBox extends StatelessWidget {
 
   const BadgeTitleBox({
     super.key,
-    this.title = "Absolute Chad",
+    required this.title,
     this.subtitle = "Current Badge",
   });
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        width: 350,
-        height: 140,
-
-        color: Colors.white,
-        child: Column(
-          spacing: 10,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(title, style: TextStyle(fontSize: 29, color: Colors.black)),
-            Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.black)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ResetToLoserButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
     return Container(
-      height: 60,
-      width: 60,
-      child: FittedBox(
-        child: FloatingActionButton(
-          onPressed: () {
-            print("Button pressed");
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 4.0,
-          child: Container(
-            decoration: BoxDecoration(
-              // shape: BoxShape.circle,
-              borderRadius: BorderRadius.circular(20),
-              image: DecorationImage(
-                image: AssetImage("assets/images/loser.png"),
-                fit: BoxFit.cover,
-              ),
-            ),
+      width: 350,
+      height: 140,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 29, color: Colors.black),
           ),
-        ),
+          const SizedBox(height: 10),
+          Text(
+            subtitle,
+            style: const TextStyle(fontSize: 12, color: Colors.black),
+          ),
+        ],
       ),
     );
   }
 }
 
-class CounterProgressCircle extends StatefulWidget {
-  int currentDate;
-  DateTime constantTime;
-  CounterProgressCircle({super.key, this.currentDate = 95, DateTime? time})
-    : constantTime = time ?? DateTime.now();
+class ProgressCounter extends StatefulWidget {
+  final Badge badge;
+
+  const ProgressCounter({super.key, required this.badge});
 
   @override
-  State<CounterProgressCircle> createState() => _CounterProgressCircleState(
-    currentDate: this.currentDate,
-    time: this.constantTime,
-  );
+  State<ProgressCounter> createState() => _ProgressCounterState();
 }
 
-class _CounterProgressCircleState extends State<CounterProgressCircle> {
-  int currentDate;
-  DateTime constantTime;
-  late double progress;
-
-  // Constructor that initializes both currentDate and constantTime
-  _CounterProgressCircleState({this.currentDate = 95, DateTime? time})
-    : constantTime = time ?? DateTime.now();
-
-  // Timer for updating the time every second
-  late Timer timer;
+class _ProgressCounterState extends State<ProgressCounter> {
+  late Timer _timer;
+  late DateTime _currentTime;
+  late double _progress;
 
   @override
   void initState() {
     super.initState();
-    // Initialize progress
-    progress = calculateProgress(constantTime);
-    // Update time every second
-    timer = Timer.periodic(Duration(seconds: 1), (timer) {
+    _currentTime = DateTime.now();
+    _progress = BadgeCalculator.calculateDayProgress();
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {
-        constantTime = DateTime.now();
-        progress = calculateProgress(constantTime);
+        _currentTime = DateTime.now();
+        _progress = BadgeCalculator.calculateDayProgress();
       });
     });
   }
 
   @override
   void dispose() {
-    timer.cancel(); // Cancel timer when widget is disposed
+    _timer.cancel();
     super.dispose();
   }
 
@@ -165,19 +291,16 @@ class _CounterProgressCircleState extends State<CounterProgressCircle> {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Progress indicator
         SizedBox(
-          height: 200,
-          width: 200,
+          height: AppConstants.progressCircleSize,
+          width: AppConstants.progressCircleSize,
           child: CircularProgressIndicator(
-            value: progress,
-            strokeWidth: 5.0,
+            value: _progress,
+            strokeWidth: AppConstants.progressStrokeWidth,
             backgroundColor: Colors.white,
             color: Colors.green.shade500,
           ),
         ),
-
-        // Content container
         Container(
           height: 180,
           width: 180,
@@ -186,7 +309,7 @@ class _CounterProgressCircleState extends State<CounterProgressCircle> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                currentDate.toString(),
+                widget.badge.days.toString(),
                 style: const TextStyle(
                   fontSize: 40,
                   fontWeight: FontWeight.bold,
@@ -195,11 +318,7 @@ class _CounterProgressCircleState extends State<CounterProgressCircle> {
               const SizedBox(height: 4),
               const Text("Days"),
               const SizedBox(height: 4),
-              // Replace this line:
-              // Text(DateTime.now().toString().substring(11, 19)),
-
-              // With your constant time:
-              Text(constantTime.toString().substring(11, 19)),
+              Text(_currentTime.toString().substring(11, 19)),
             ],
           ),
         ),
@@ -208,72 +327,85 @@ class _CounterProgressCircleState extends State<CounterProgressCircle> {
   }
 }
 
-class BottomNavBar extends StatelessWidget {
+class ResetButton extends StatelessWidget {
+  final VoidCallback onReset;
+
+  const ResetButton({super.key, required this.onReset});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 60,
+      width: 60,
+      child: FloatingActionButton(
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Reset Progress'),
+              content: const Text(
+                'Are you sure you want to reset your progress?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    onReset();
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Reset'),
+                ),
+              ],
+            ),
+          );
+        },
+        backgroundColor: Colors.transparent,
+        elevation: 4.0,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            image: const DecorationImage(
+              image: AssetImage("assets/images/loser.png"),
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class AppBottomNavBar extends StatelessWidget {
+  const AppBottomNavBar({super.key});
+
   @override
   Widget build(BuildContext context) {
     return NavigationBar(
-      destinations: [
+      destinations: const [
         NavigationDestination(icon: Icon(Icons.home), label: 'Home'),
         NavigationDestination(icon: Icon(Icons.history), label: 'History'),
         NavigationDestination(icon: Icon(Icons.people), label: 'Community'),
         NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
       ],
-      onDestinationSelected: (value) {
-        print(value);
-      },
+      onDestinationSelected: (value) => print('Selected: $value'),
     );
   }
 }
 
-final List<Map<String, dynamic>> badgesData = [
-  {"title": "Clown", "days": 10, "avatarImagePath": "assets/images/loser.png"},
-  {
-    "title": "Beginner",
-    "days": 30,
-    "avatarImagePath": "assets/images/loser.png",
-  },
-  {
-    "title": "Warrior",
-    "days": 60,
-    "avatarImagePath": "assets/images/loser.png",
-  },
-  {
-    "title": "Absolute Chad",
-    "days": 90,
-    "avatarImagePath": "assets/images/loser.png",
-  },
-  {
-    "title": "Absolute Chad",
-    "days": 90,
-    "avatarImagePath": "assets/images/loser.png",
-  },
-  {
-    "title": "Absolute Chad",
-    "days": 90,
-    "avatarImagePath": "assets/images/loser.png",
-  },
-  {
-    "title": "Absolute Chad",
-    "days": 90,
-    "avatarImagePath": "assets/images/loser.png",
-  },
-  {
-    "title": "Absolute Chad",
-    "days": 90,
-    "avatarImagePath": "assets/images/loser.png",
-  },
-];
+class BadgesDrawer extends StatelessWidget {
+  const BadgesDrawer({super.key});
 
-class DrawerAllBadges extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          const Padding(
+            padding: EdgeInsets.all(16),
             child: Text(
               'All Badges',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -281,17 +413,18 @@ class DrawerAllBadges extends StatelessWidget {
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: badgesData.length,
+              itemCount: AppConstants.badges.length,
               itemBuilder: (context, index) {
+                final badge = AppConstants.badges[index];
                 return Padding(
                   padding: const EdgeInsets.symmetric(
                     vertical: 8.0,
                     horizontal: 16.0,
                   ),
-                  child: SingleBadge(
-                    title: badgesData[index]["title"],
-                    days: badgesData[index]["days"],
-                    avatarImagePath: badgesData[index]["avatarImagePath"],
+                  child: BadgeListItem(
+                    title: badge.title,
+                    days: badge.days,
+                    imagePath: badge.imagePath,
                   ),
                 );
               },
@@ -303,33 +436,28 @@ class DrawerAllBadges extends StatelessWidget {
   }
 }
 
-class SingleBadge extends StatelessWidget {
+class BadgeListItem extends StatelessWidget {
   final String title;
   final int days;
-  final String avatarImagePath;
+  final String imagePath;
 
-  const SingleBadge({
+  const BadgeListItem({
     super.key,
-    this.title = "Clown",
-    this.days = 10,
-    this.avatarImagePath = "assets/images/loser.png",
+    required this.title,
+    required this.days,
+    required this.imagePath,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // Avatar rond
-        ClipOval(
-          child: Image.asset(
-            avatarImagePath,
-            width: 60,
-            height: 60,
-            fit: BoxFit.cover,
-          ),
+        CircularImage(
+          imagePath: imagePath,
+          size: AppConstants.avatarSize,
+          borderWidth: 0,
         ),
         const SizedBox(width: 12),
-        // Textes blancs en colonne
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -350,95 +478,4 @@ class SingleBadge extends StatelessWidget {
       ],
     );
   }
-}
-
-class HomePage extends StatelessWidget {
-  DateTime? lastDateTime;
-  late CompleteBadge completeBadge;
-  HomePage({super.key, this.lastDateTime}) {
-    completeBadge = calculateCompleteBadge(lastDateTime ?? DateTime.now());
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        spacing: 30,
-
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Padding(
-                padding: EdgeInsets.only(top: 110), // Push the box down
-                child: BadgeTitleBox(title: completeBadge.badgeTitle),
-              ),
-              Positioned(
-                top: 0,
-                child: CurrentBadgeImages(
-                  imagePath: completeBadge.badgeAvatarPath,
-                ),
-              ),
-            ],
-          ),
-
-          CounterProgressCircle(
-            currentDate: completeBadge.days,
-            time: completeBadge.time,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-double calculateProgress(DateTime date) {
-  // Calculate progress as a ratio of how far through the day we are
-  // Returns a value between 0.0 and 1.0
-  final now = DateTime.now();
-
-  // Get seconds elapsed since the start of the day
-  final secondsElapsed = now.hour * 3600 + now.minute * 60 + now.second;
-
-  // Total seconds in a day
-  const totalSecondsInDay = 24 * 3600;
-
-  // Calculate progress (how far through the day we are)
-  return secondsElapsed / totalSecondsInDay;
-}
-
-class CompleteBadge {
-  String badgeTitle;
-  String badgeAvatarPath;
-  int days;
-  DateTime time;
-
-  CompleteBadge(this.badgeTitle, this.badgeAvatarPath, this.days, this.time);
-}
-
-// function that calculate the current user badge from a initial datetime
-CompleteBadge calculateCompleteBadge(DateTime dateTime) {
-  // Calculate number of days since the provided date
-  final now = DateTime.now();
-  final difference = now.difference(dateTime);
-  final days = difference.inDays;
-
-  // Determine badge based on the number of days
-  String badgeTitle;
-  String badgeAvatarPath = 'assets/images/loser.png';
-
-  if (days >= 90) {
-    badgeTitle = "Absolute Chad";
-    badgeAvatarPath = 'assets/images/chad.png';
-  } else if (days >= 60) {
-    badgeTitle = "Warrior";
-    badgeAvatarPath = 'assets/images/warrior.png';
-  } else if (days >= 30) {
-    badgeTitle = "Beginner";
-    badgeAvatarPath = 'assets/images/beginner.png';
-  } else {
-    badgeTitle = "Clown";
-  }
-
-  return CompleteBadge(badgeTitle, badgeAvatarPath, days, dateTime);
 }
