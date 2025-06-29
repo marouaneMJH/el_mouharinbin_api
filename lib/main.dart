@@ -25,26 +25,7 @@ class MyApp extends StatelessWidget {
           title: Text('NO FAP!', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
 
-        body: Center(
-          child: Column(
-            spacing: 30,
-
-            children: [
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Padding(
-                    padding: EdgeInsets.only(top: 110), // Push the box down
-                    child: BadgeTitleBox(),
-                  ),
-                  Positioned(top: 0, child: CurrentBadgeImages()),
-                ],
-              ),
-
-              CounterProgressCircle(),
-            ],
-          ),
-        ),
+        body: HomePage(),
         backgroundColor: Colors.black,
         floatingActionButton: ResetToLoserButton(),
         drawer: DrawerAllBadges(),
@@ -56,7 +37,8 @@ class MyApp extends StatelessWidget {
 }
 
 class CurrentBadgeImages extends StatelessWidget {
-  final String imagePath = "assets/images/chad.png";
+  final String imagePath;
+  const CurrentBadgeImages({super.key, required this.imagePath});
 
   @override
   Widget build(BuildContext context) {
@@ -134,20 +116,26 @@ class ResetToLoserButton extends StatelessWidget {
 }
 
 class CounterProgressCircle extends StatefulWidget {
-  const CounterProgressCircle({super.key});
+  int currentDate;
+  DateTime constantTime;
+  CounterProgressCircle({super.key, this.currentDate = 95, DateTime? time})
+    : constantTime = time ?? DateTime.now();
 
   @override
-  State<CounterProgressCircle> createState() => _CounterProgressCircleState();
+  State<CounterProgressCircle> createState() => _CounterProgressCircleState(
+    currentDate: this.currentDate,
+    time: this.constantTime,
+  );
 }
 
 class _CounterProgressCircleState extends State<CounterProgressCircle> {
-  int currentDate = 95;
-  // Replace this line:
-  DateTime constantTime = DateTime.now();
+  int currentDate;
+  DateTime constantTime;
   late double progress;
 
-  // With a constant date:
-  // final String constantTime = "12:34:56"; // Your fixed time
+  // Constructor that initializes both currentDate and constantTime
+  _CounterProgressCircleState({this.currentDate = 95, DateTime? time})
+    : constantTime = time ?? DateTime.now();
 
   // Timer for updating the time every second
   late Timer timer;
@@ -364,6 +352,46 @@ class SingleBadge extends StatelessWidget {
   }
 }
 
+class HomePage extends StatelessWidget {
+  DateTime? lastDateTime;
+  late CompleteBadge completeBadge;
+  HomePage({super.key, this.lastDateTime}) {
+    completeBadge = calculateCompleteBadge(lastDateTime ?? DateTime.now());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        spacing: 30,
+
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(top: 110), // Push the box down
+                child: BadgeTitleBox(title: completeBadge.badgeTitle),
+              ),
+              Positioned(
+                top: 0,
+                child: CurrentBadgeImages(
+                  imagePath: completeBadge.badgeAvatarPath,
+                ),
+              ),
+            ],
+          ),
+
+          CounterProgressCircle(
+            currentDate: completeBadge.days,
+            time: completeBadge.time,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 double calculateProgress(DateTime date) {
   // Calculate progress as a ratio of how far through the day we are
   // Returns a value between 0.0 and 1.0
@@ -377,4 +405,40 @@ double calculateProgress(DateTime date) {
 
   // Calculate progress (how far through the day we are)
   return secondsElapsed / totalSecondsInDay;
+}
+
+class CompleteBadge {
+  String badgeTitle;
+  String badgeAvatarPath;
+  int days;
+  DateTime time;
+
+  CompleteBadge(this.badgeTitle, this.badgeAvatarPath, this.days, this.time);
+}
+
+// function that calculate the current user badge from a initial datetime
+CompleteBadge calculateCompleteBadge(DateTime dateTime) {
+  // Calculate number of days since the provided date
+  final now = DateTime.now();
+  final difference = now.difference(dateTime);
+  final days = difference.inDays;
+
+  // Determine badge based on the number of days
+  String badgeTitle;
+  String badgeAvatarPath = 'assets/images/loser.png';
+
+  if (days >= 90) {
+    badgeTitle = "Absolute Chad";
+    badgeAvatarPath = 'assets/images/chad.png';
+  } else if (days >= 60) {
+    badgeTitle = "Warrior";
+    badgeAvatarPath = 'assets/images/warrior.png';
+  } else if (days >= 30) {
+    badgeTitle = "Beginner";
+    badgeAvatarPath = 'assets/images/beginner.png';
+  } else {
+    badgeTitle = "Clown";
+  }
+
+  return CompleteBadge(badgeTitle, badgeAvatarPath, days, dateTime);
 }
