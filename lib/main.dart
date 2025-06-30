@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:no_fap/data/notifiers.dart';
 
 void main() => runApp(const MyApp());
 
@@ -8,15 +9,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blueGrey,
-          brightness: Brightness.dark,
-        ),
-      ),
-      home: const MainScreen(),
+    return ValueListenableBuilder(
+      valueListenable: isDarkModeNotifier,
+      builder: (context, isDarkMode, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blueGrey,
+              brightness: isDarkModeNotifier.value
+                  ? Brightness.dark
+                  : Brightness.light,
+            ),
+          ),
+          home: const MainScreen(),
+        );
+      },
     );
   }
 }
@@ -30,7 +38,6 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   late DateTime startDate;
-
   @override
   void initState() {
     super.initState();
@@ -51,9 +58,22 @@ class _MainScreenState extends State<MainScreen> {
           'NO FAP!',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          ValueListenableBuilder(
+            valueListenable: isDarkModeNotifier,
+            builder: (context, isDarkMode, child) {
+              return IconButton(
+                onPressed: () {
+                  isDarkModeNotifier.value = !isDarkModeNotifier.value;
+                },
+                icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
+              );
+            },
+          ),
+        ],
       ),
+
       body: HomePage(startDate: startDate),
-      backgroundColor: Colors.black,
       floatingActionButton: ResetButton(onReset: resetStartDate),
       drawer: const BadgesDrawer(),
       bottomNavigationBar: const AppBottomNavBar(),
@@ -297,8 +317,6 @@ class _ProgressCounterState extends State<ProgressCounter> {
           child: CircularProgressIndicator(
             value: _progress,
             strokeWidth: AppConstants.progressStrokeWidth,
-            backgroundColor: Colors.white,
-            color: Colors.green.shade500,
           ),
         ),
         Container(
@@ -378,9 +396,24 @@ class ResetButton extends StatelessWidget {
   }
 }
 
-class AppBottomNavBar extends StatelessWidget {
+// class AppBottomNavBar extends StatelessWidget {
+//   const AppBottomNavBar({super.key});
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return
+//   }
+// }
+
+class AppBottomNavBar extends StatefulWidget {
   const AppBottomNavBar({super.key});
 
+  @override
+  State<AppBottomNavBar> createState() => _AppBottomNavBarState();
+}
+
+class _AppBottomNavBarState extends State<AppBottomNavBar> {
+  int currentPageIndex = 0;
   @override
   Widget build(BuildContext context) {
     return NavigationBar(
@@ -390,7 +423,10 @@ class AppBottomNavBar extends StatelessWidget {
         NavigationDestination(icon: Icon(Icons.people), label: 'Community'),
         NavigationDestination(icon: Icon(Icons.person), label: 'Profile'),
       ],
-      onDestinationSelected: (value) => print('Selected: $value'),
+      selectedIndex: currentPageIndex,
+      onDestinationSelected: (value) => setState(() {
+        currentPageIndex = value;
+      }),
     );
   }
 }
