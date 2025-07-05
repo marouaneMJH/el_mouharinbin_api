@@ -7,7 +7,7 @@ class AppConstants {
   static const double progressStrokeWidth = 5.0;
 
   static const List<BadgeConfig> badges = [
-    BadgeConfig(title: "Clown", days: 0, imagePath: "assets/images/loser.png"),
+    BadgeConfig(title: "عيان", days: 0, imagePath: "assets/images/loser.png"),
     BadgeConfig(
       title: "Beginner",
       days: 30,

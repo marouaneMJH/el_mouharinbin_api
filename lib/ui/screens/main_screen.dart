@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:no_fap/data/notifiers.dart';
+import 'package:no_fap/services/local_storage.dart' show LocalStorage;
 import 'package:no_fap/ui/components/badge_drawer.dart';
 import 'package:no_fap/ui/screens/home_screen.dart';
 import 'package:no_fap/ui/widgets/bottom_nav_bar.dart';
@@ -13,25 +14,33 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  late DateTime startDate;
+  late DateTime? startDate = null;
   @override
   void initState() {
     super.initState();
-    startDate = DateTime(2024, 1, 1); // Default start date
+    LocalStorage.loadStartDate().then((date) {
+      setState(() {
+        startDate = date ?? DateTime(2025, 7, 2);
+      });
+    });
   }
 
   void resetStartDate() {
     setState(() {
-      startDate = DateTime.now();
+      LocalStorage.resetStartDate();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    if (startDate == null) {
+      return const Scaffold(body: Center(child: Text("Init Date")));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'NO FAP!',
+          'المحارب! ',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -49,7 +58,7 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
 
-      body: HomePage(startDate: startDate),
+      body: HomePage(startDate: startDate!),
       floatingActionButton: ResetButton(onReset: resetStartDate),
       drawer: const BadgesDrawer(),
       bottomNavigationBar: const AppBottomNavBar(),
