@@ -20,7 +20,7 @@ class MyApp extends StatelessWidget {
               seedColor: Colors.blueGrey,
               brightness: isDarkModeNotifier.value
                   ? Brightness.dark
-                  : Brightness.light,
+                  : Brightness.dark, // debug turn it in top light
             ),
           ),
           initialRoute: '/',

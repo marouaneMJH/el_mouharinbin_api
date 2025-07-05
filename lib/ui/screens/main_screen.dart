@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:no_fap/core/navigation/screen_registry.dart';
-import 'package:no_fap/data/notifiers.dart';
+// import 'package:no_fap/data/notifiers.dart';
 import 'package:no_fap/services/local_storage.dart' show LocalStorage;
 import 'package:no_fap/ui/components/badge_drawer.dart';
-import 'package:no_fap/ui/pages/main/badge_overview.dart';
+// import 'package:no_fap/ui/pages/main/badge_overview.dart';
 import 'package:no_fap/ui/widgets/bottom_nav_bar.dart';
 import 'package:no_fap/ui/widgets/reset_button.dart' show ResetButton;
 
@@ -88,19 +88,20 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  List<Widget> _actions() {
-    return [
-      ValueListenableBuilder(
-        valueListenable: isDarkModeNotifier,
-        builder: (context, isDarkMode, child) {
-          return IconButton(
-            onPressed: () {
-              isDarkModeNotifier.value = !isDarkModeNotifier.value;
-            },
-            icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
-          );
-        },
-      ),
-    ];
+  List<Widget>? _actions() {
+    return null; // debug work just with the dark for this moments
+    // return [
+    //   ValueListenableBuilder(
+    //     valueListenable: isDarkModeNotifier,
+    //     builder: (context, isDarkMode, child) {
+    //       return IconButton(
+    //         onPressed: () {
+    //           isDarkModeNotifier.value = !isDarkModeNotifier.value;
+    //         },
+    //         icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
+    //       );
+    //     },
+    //   ),
+    // ];
   }
 }

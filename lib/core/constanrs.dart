@@ -3,6 +3,7 @@ import 'package:no_fap/data/models/badge_config.dart' show BadgeConfig;
 class AppConstants {
   static const double badgeImageSize = 150;
   static const double avatarSize = 60;
+  static const double avatarSmallSize = 60;
   static const double progressCircleSize = 200;
   static const double progressStrokeWidth = 5.0;
 
