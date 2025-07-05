@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ResetButton extends StatelessWidget {
-  final VoidCallback onReset;
+  final void Function(String reason) onReset;
 
   const ResetButton({super.key, required this.onReset});
 
@@ -12,26 +12,48 @@ class ResetButton extends StatelessWidget {
       width: 60,
       child: FloatingActionButton(
         onPressed: () {
+          final TextEditingController reasonController =
+              TextEditingController();
+
           showDialog(
             context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Reset Progress'),
-              content: const Text(
-                'Are you sure you want to reset your progress?',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    onReset();
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Reset'),
-                ),
-              ],
+            builder: (context) => StatefulBuilder(
+              builder: (context, setState) {
+                return AlertDialog(
+                  title: const Text('Become a clown again?'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text('Reason:'),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: reasonController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          hintText: 'Enter reason...',
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        final reason = reasonController.text.trim();
+                        if (reason.isNotEmpty) {
+                          onReset(reason);
+                          Navigator.pop(context);
+                        }
+                      },
+                      child: const Text('Reset'),
+                    ),
+                  ],
+                );
+              },
             ),
           );
         },

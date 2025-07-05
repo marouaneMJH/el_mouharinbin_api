@@ -30,9 +30,10 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  void resetStartDate() {
+  void resetStartDate(String str) {
     setState(() {
       LocalStorage.resetStartDate();
+      print(str);
     });
   }
 

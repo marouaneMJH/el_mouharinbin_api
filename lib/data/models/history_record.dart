@@ -30,4 +30,18 @@ class HistoryRecord {
     final normalizedTo = DateTime(to.year, to.month, to.day);
     return normalizedTo.difference(normalizedFrom).inDays + 1;
   }
+
+  // Convert object to JSON
+  Map<String, dynamic> toJson() => {
+    'startDate': startDate.toIso8601String(),
+    'lastDate': lastDate.toIso8601String(),
+    'reason': reason,
+  };
+
+  // Create object from JSON
+  factory HistoryRecord.fromJson(Map<String, dynamic> json) => HistoryRecord(
+    startDate: DateTime.parse(json['startDate']),
+    lastDate: DateTime.parse(json['lastDate']),
+    reason: json['reason'],
+  );
 }
