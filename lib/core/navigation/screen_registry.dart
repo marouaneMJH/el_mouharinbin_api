@@ -7,7 +7,7 @@ import 'package:no_fap/ui/pages/main/group_overview.dart';
 import 'package:no_fap/ui/pages/main/history_overview.dart';
 import 'package:no_fap/ui/screens/main_screen.dart';
 
-final List<ScreenDefinition> appPages = [
+final List<ScreenDefinition> appScreensPages = [
   ScreenDefinition(
     screen: const MainScreen(),
     pages: [
