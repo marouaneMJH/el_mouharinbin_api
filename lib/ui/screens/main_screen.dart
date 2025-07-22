@@ -1,48 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:no_fap/core/navigation/screen_registry.dart';
-// import 'package:no_fap/data/notifiers.dart';
 import 'package:no_fap/services/local_storage.dart' show LocalStorage;
 import 'package:no_fap/ui/components/badge_drawer.dart';
-// import 'package:no_fap/ui/pages/main/badge_overview.dart';
 import 'package:no_fap/ui/widgets/bottom_nav_bar.dart';
-import 'package:no_fap/ui/widgets/reset_button.dart' show ResetButton;
+import 'package:no_fap/ui/widgets/reset_button.dart';
 
 class MainScreen extends StatefulWidget {
-  final int SCREEN_INDEX = 0; // Needed for the screen registry
+  final int SCREEN_INDEX = 0;
 
   const MainScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<MainScreen> createState() => MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
-  late DateTime? startDate = null;
+class MainScreenState extends State<MainScreen> {
+  DateTime? startDate;
   int currentPageIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _loadStartDate();
+  }
+
+  void _loadStartDate() {
     LocalStorage.loadStartDate().then((date) {
       setState(() {
-        startDate = date ?? DateTime(2025, 7, 2);
+        startDate = date;
       });
     });
   }
 
-  void resetStartDate(String str) {
+  void resetStartDate(String reason) {
     setState(() {
-      LocalStorage.resetStartDate();
-      print(str);
+      LocalStorage.resetStartDate(reason);
+      print(reason);
     });
+  }
+
+  void refreshPage(int pageIndex, {bool reloadDate = false}) {
+    setState(() {
+      currentPageIndex = pageIndex;
+    });
+    if (reloadDate) {
+      _loadStartDate();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (startDate == null) {
-      return const Scaffold(body: Center(child: Text("Init Date")));
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -51,17 +58,15 @@ class _MainScreenState extends State<MainScreen> {
         ),
         actions: _actions(),
       ),
-
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        transitionBuilder: (Widget child, Animation<double> animation) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        child: KeyedSubtree(
-          key: ValueKey(
-            currentPageIndex,
-          ), // Important pour déclencher l’animation
-          child: _getPageWidget(currentPageIndex),
+      body: SafeArea(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, animation) =>
+              FadeTransition(opacity: animation, child: child),
+          child: KeyedSubtree(
+            key: ValueKey(currentPageIndex),
+            child: _getPageWidget(currentPageIndex),
+          ),
         ),
       ),
       floatingActionButton: currentPageIndex == 0
@@ -70,7 +75,11 @@ class _MainScreenState extends State<MainScreen> {
       drawer: const BadgesDrawer(),
       bottomNavigationBar: AppBottomNavBar(
         currentPageIndex: currentPageIndex,
-        onTabChange: _onTabChange(),
+        onTabChange: (index) {
+          setState(() {
+            currentPageIndex = index;
+          });
+        },
       ),
     );
   }
@@ -83,26 +92,7 @@ class _MainScreenState extends State<MainScreen> {
     return appScreensPages[widget.SCREEN_INDEX].pages[pageIndex].page;
   }
 
-  ValueChanged<int> _onTabChange() {
-    return (index) => setState(() {
-      currentPageIndex = index;
-    });
-  }
-
   List<Widget>? _actions() {
-    return null; // debug work just with the dark for this moments
-    // return [
-    //   ValueListenableBuilder(
-    //     valueListenable: isDarkModeNotifier,
-    //     builder: (context, isDarkMode, child) {
-    //       return IconButton(
-    //         onPressed: () {
-    //           isDarkModeNotifier.value = !isDarkModeNotifier.value;
-    //         },
-    //         icon: Icon(isDarkMode ? Icons.dark_mode : Icons.light_mode),
-    //       );
-    //     },
-    //   ),
-    // ];
+    return null;
   }
 }

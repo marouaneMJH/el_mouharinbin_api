@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:no_fap/data/notifiers.dart';
 import 'package:no_fap/routes/app_router.dart';
-import 'package:no_fap/ui/screens/main_screen.dart';
+// import 'package:no_fap/ui/screens/main_screen.dart';
 
 void main() => runApp(const MyApp());
 
