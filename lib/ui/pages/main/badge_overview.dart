@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:no_fap/data/globals.dart';
 import 'package:no_fap/data/utils/badge_calculator.dart';
 import 'package:no_fap/services/local_storage.dart';
 import 'package:no_fap/ui/pages/main/start_date_picker.dart';

@@ -8,10 +8,18 @@ class LocalStorage {
   static const _startDateKey = 'startDate';
   static const _historyKey = 'history';
 
-  static Future<void> saveStartDate([DateTime? date]) async {
+  static Future<void> saveStartDate({
+    DateTime? date,
+    bool isNull = false,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
-    final dateToSave = date ?? DateTime.now();
-    await prefs.setString(_startDateKey, dateToSave.toIso8601String());
+    if (isNull) {
+      // Supprimer la date enregistrée
+      await prefs.remove(_startDateKey);
+    } else {
+      final dateToSave = date ?? DateTime.now();
+      await prefs.setString(_startDateKey, dateToSave.toIso8601String());
+    }
   }
 
   static Future<DateTime?> loadStartDate() async {
@@ -32,7 +40,7 @@ class LocalStorage {
 
     await appendHistoryRecord(newRecord);
 
-    await saveStartDate(DateTime.now());
+    await saveStartDate(date: DateTime.now());
   }
 
   static Future<void> saveHistory(History history) async {

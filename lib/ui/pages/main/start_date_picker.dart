@@ -17,7 +17,7 @@ class StartDatePicker extends StatelessWidget {
 
   void _refreshOnPickedDate(DateTime? date) {
     if (date != null) {
-      LocalStorage.saveStartDate(date);
+      LocalStorage.saveStartDate(date: date);
       mainScreenKey.currentState?.refreshPage(0, reloadDate: true);
     }
   }

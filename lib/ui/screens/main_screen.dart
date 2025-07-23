@@ -8,7 +8,7 @@ import 'package:no_fap/ui/widgets/reset_button.dart';
 class MainScreen extends StatefulWidget {
   final int SCREEN_INDEX = 0;
 
-  const MainScreen({super.key});
+  MainScreen({Key? key}) : super(key: key);
 
   @override
   State<MainScreen> createState() => MainScreenState();
@@ -24,18 +24,17 @@ class MainScreenState extends State<MainScreen> {
     _loadStartDate();
   }
 
-  void _loadStartDate() {
-    LocalStorage.loadStartDate().then((date) {
-      setState(() {
-        startDate = date;
-      });
-    });
-  }
+  // void _loadStartDate() async {
+  //   LocalStorage.loadStartDate().then((date) {
+  //     setState(() {
+  //       startDate = null;
+  //     });
+  //   });
+  // }
 
   void resetStartDate(String reason) {
     setState(() {
       LocalStorage.resetStartDate(reason);
-      print(reason);
     });
   }
 
@@ -46,6 +45,15 @@ class MainScreenState extends State<MainScreen> {
     if (reloadDate) {
       _loadStartDate();
     }
+  }
+
+  Future<void> _loadStartDate() async {
+    final date = await LocalStorage.loadStartDate();
+    setState(() {
+      startDate = date;
+      print(startDate);
+      if (startDate == null) currentPageIndex = 5;
+    });
   }
 
   @override
@@ -70,17 +78,34 @@ class MainScreenState extends State<MainScreen> {
         ),
       ),
       floatingActionButton: currentPageIndex == 0
-          ? ResetButton(onReset: resetStartDate)
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ResetButton(onReset: resetStartDate),
+                const SizedBox(height: 8),
+                FloatingActionButton.extended(
+                  onPressed: () => setState(() {
+                    LocalStorage.saveStartDate(isNull: true);
+                    currentPageIndex = 5;
+                  }),
+                  label: const Text("Reset to Null"),
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            )
           : null,
-      drawer: const BadgesDrawer(),
-      bottomNavigationBar: AppBottomNavBar(
-        currentPageIndex: currentPageIndex,
-        onTabChange: (index) {
-          setState(() {
-            currentPageIndex = index;
-          });
-        },
-      ),
+
+      drawer: currentPageIndex != 5 ? const BadgesDrawer() : null,
+      bottomNavigationBar: currentPageIndex != 5
+          ? AppBottomNavBar(
+              currentPageIndex: currentPageIndex,
+              onTabChange: (index) {
+                setState(() {
+                  currentPageIndex = index;
+                });
+              },
+            )
+          : null,
     );
   }
 

@@ -18,7 +18,7 @@ final List<ScreenDefinition> appScreensPages = [
       PageDefinition(title: "Group", index: 2, page: GroupPage()),
       PageDefinition(title: "Community", index: 3, page: CommunityPage()),
       PageDefinition(title: "Chat", index: 4, page: ChatPage()),
-      PageDefinition(title: "StartDate", index: 5, page: StartDatePicker()),
+      PageDefinition(title: "", index: 5, page: StartDatePicker()),
     ],
   ),
 ];
