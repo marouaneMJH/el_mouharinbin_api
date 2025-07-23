@@ -14,7 +14,7 @@ class LocalStorage {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     if (isNull) {
-      // Supprimer la date enregistrée
+      // Delete the old saved date value
       await prefs.remove(_startDateKey);
     } else {
       final dateToSave = date ?? DateTime.now();
@@ -55,6 +55,7 @@ class LocalStorage {
     if (jsonString == null) return null;
 
     final Map<String, dynamic> json = jsonDecode(jsonString);
+    print(json);
     return History.fromJson(json);
   }
 
@@ -84,5 +85,13 @@ class LocalStorage {
 
     // Step 4: Save the updated object back to SharedPreferences
     await prefs.setString(_historyKey, jsonEncode(updatedHistory.toJson()));
+  }
+
+  // debug
+  static resetHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Delete the old saved date value
+    await prefs.remove(_historyKey);
   }
 }

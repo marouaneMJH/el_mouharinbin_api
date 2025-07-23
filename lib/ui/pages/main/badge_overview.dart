@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:no_fap/data/globals.dart';
 import 'package:no_fap/data/utils/badge_calculator.dart';
-import 'package:no_fap/services/local_storage.dart';
+import 'package:no_fap/data/notifier/start_date_notifier.dart';
 import 'package:no_fap/ui/pages/main/start_date_picker.dart';
 import 'package:no_fap/ui/widgets/badge_display.dart';
 import 'package:no_fap/ui/widgets/progress_counter.dart';
@@ -14,27 +13,38 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  DateTime? startDate;
+  final StartDateNotifier _startDateNotifier = StartDateNotifier();
 
   @override
   void initState() {
     super.initState();
-    _loadStartDate();
+    _startDateNotifier.addListener(_onStartDateChanged);
+    // Load initial data if not already loaded
+    if (_startDateNotifier.startDate == null) {
+      _startDateNotifier.loadStartDate();
+    }
   }
 
-  Future<void> _loadStartDate() async {
-    final date = await LocalStorage.loadStartDate();
+  @override
+  void dispose() {
+    _startDateNotifier.removeListener(_onStartDateChanged);
+    super.dispose();
+  }
+
+  void _onStartDateChanged() {
     setState(() {
-      startDate = date;
+      // This will trigger a rebuild when the start date changes
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final startDate = _startDateNotifier.startDate;
+
     if (startDate == null) {
       return StartDatePicker();
     } else {
-      final badge = BadgeCalculator.calculateCurrentBadge(startDate!);
+      final badge = BadgeCalculator.calculateCurrentBadge(startDate);
 
       return Center(
         child: Column(

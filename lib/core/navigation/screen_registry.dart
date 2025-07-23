@@ -14,7 +14,7 @@ final List<ScreenDefinition> appScreensPages = [
     screen: MainScreen(key: mainScreenKey),
     pages: [
       PageDefinition(title: "Home", index: 0, page: HomePage()),
-      const PageDefinition(title: "History", index: 1, page: HistoryPage()),
+      PageDefinition(title: "History", index: 1, page: HistoryPage()),
       PageDefinition(title: "Group", index: 2, page: GroupPage()),
       PageDefinition(title: "Community", index: 3, page: CommunityPage()),
       PageDefinition(title: "Chat", index: 4, page: ChatPage()),

@@ -9,10 +9,13 @@ class HistoryList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sortedRecords = List.of(history.records)
+      ..sort((a, b) => b.lastDate.compareTo(a.lastDate));
+
     return ListView.builder(
-      itemCount: history.records.length,
+      itemCount: sortedRecords.length,
       itemBuilder: (context, index) {
-        final record = history.records[index];
+        final record = sortedRecords[index];
         return HistoryCard(record: record);
       },
     );

@@ -17,7 +17,7 @@ class _PickStartDateState extends State<PickStartDate> {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate: DateTime(1900),
       lastDate: DateTime.now(),
     );
     if (pickedDate != null) widget.onPickedDate(pickedDate);

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:no_fap/core/navigation/screen_registry.dart';
-import 'package:no_fap/services/local_storage.dart' show LocalStorage;
+import 'package:no_fap/data/notifier/history_notifier.dart';
+import 'package:no_fap/data/notifier/start_date_notifier.dart';
+import 'package:no_fap/services/local_storage.dart';
 import 'package:no_fap/ui/components/badge_drawer.dart';
 import 'package:no_fap/ui/widgets/bottom_nav_bar.dart';
 import 'package:no_fap/ui/widgets/reset_button.dart';
@@ -15,27 +17,44 @@ class MainScreen extends StatefulWidget {
 }
 
 class MainScreenState extends State<MainScreen> {
-  DateTime? startDate;
+  final StartDateNotifier _startDateNotifier = StartDateNotifier();
+  final HistoryNotifier _historyNotifier = HistoryNotifier.instance;
+
   int currentPageIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadStartDate();
+    _startDateNotifier.loadStartDate();
+    _startDateNotifier.addListener(_onStartDateChanged);
+    _historyNotifier.addListener(_onHistoryChanged);
   }
 
-  // void _loadStartDate() async {
-  //   LocalStorage.loadStartDate().then((date) {
-  //     setState(() {
-  //       startDate = null;
-  //     });
-  //   });
-  // }
+  @override
+  void dispose() {
+    _startDateNotifier.removeListener(_onStartDateChanged);
+    _historyNotifier.removeListener(_onHistoryChanged);
 
-  void resetStartDate(String reason) {
+    // _historyNotifier.removeListener(_onPressResetHistoryButton);
+    super.dispose();
+  }
+
+  void _onHistoryChanged() {
+    // This will be called when history is updated
+    // You can add any UI updates here if needed
+    print("History changed");
+  }
+
+  void _onStartDateChanged() {
     setState(() {
-      LocalStorage.resetStartDate(reason);
+      if (_startDateNotifier.startDate == null) {
+        currentPageIndex = 5;
+      }
     });
+  }
+
+  void resetStartDate(String reason) async {
+    await _startDateNotifier.resetStartDate(reason);
   }
 
   void refreshPage(int pageIndex, {bool reloadDate = false}) {
@@ -43,17 +62,8 @@ class MainScreenState extends State<MainScreen> {
       currentPageIndex = pageIndex;
     });
     if (reloadDate) {
-      _loadStartDate();
+      _startDateNotifier.loadStartDate();
     }
-  }
-
-  Future<void> _loadStartDate() async {
-    final date = await LocalStorage.loadStartDate();
-    setState(() {
-      startDate = date;
-      print(startDate);
-      if (startDate == null) currentPageIndex = 5;
-    });
   }
 
   @override
@@ -84,26 +94,25 @@ class MainScreenState extends State<MainScreen> {
                 ResetButton(onReset: resetStartDate),
                 const SizedBox(height: 8),
                 FloatingActionButton.extended(
-                  onPressed: () => setState(() {
-                    LocalStorage.saveStartDate(isNull: true);
-                    currentPageIndex = 5;
-                  }),
+                  onPressed: _onPressResetButton,
                   label: const Text("Reset to Null"),
                   icon: const Icon(Icons.refresh),
                 ),
               ],
             )
-          : null,
+          : (currentPageIndex == 1
+                ? FloatingActionButton.extended(
+                    onPressed: _onPressResetHistoryButton,
+                    label: const Text("Reset History to Null"),
+                    icon: const Icon(Icons.refresh),
+                  )
+                : null),
 
       drawer: currentPageIndex != 5 ? const BadgesDrawer() : null,
       bottomNavigationBar: currentPageIndex != 5
           ? AppBottomNavBar(
               currentPageIndex: currentPageIndex,
-              onTabChange: (index) {
-                setState(() {
-                  currentPageIndex = index;
-                });
-              },
+              onTabChange: _onTabChange(),
             )
           : null,
     );
@@ -119,5 +128,26 @@ class MainScreenState extends State<MainScreen> {
 
   List<Widget>? _actions() {
     return null;
+  }
+
+  Function(int) _onTabChange() {
+    return (index) {
+      setState(() {
+        currentPageIndex = index;
+      });
+    };
+  }
+
+  // debug
+  _onPressResetButton() async {
+    await _startDateNotifier.saveStartDate(isNull: true);
+    setState(() {
+      currentPageIndex = 5;
+    });
+  }
+
+  _onPressResetHistoryButton() async {
+    await _historyNotifier.resetHistory();
+    print("History reset completed");
   }
 }
