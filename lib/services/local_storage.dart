@@ -55,7 +55,7 @@ class LocalStorage {
     if (jsonString == null) return null;
 
     final Map<String, dynamic> json = jsonDecode(jsonString);
-    print(json);
+    // print(json);
     return History.fromJson(json);
   }
 

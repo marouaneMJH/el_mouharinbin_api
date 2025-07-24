@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:no_fap/data/models/ history.dart';
 import 'package:no_fap/data/notifier/history_notifier.dart';
-import 'package:no_fap/services/local_storage.dart';
 import 'package:no_fap/ui/widgets/history_list.dart';
 
 class HistoryPage extends StatefulWidget {

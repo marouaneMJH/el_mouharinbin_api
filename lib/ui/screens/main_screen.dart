@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:no_fap/core/navigation/screen_registry.dart';
 import 'package:no_fap/data/notifier/history_notifier.dart';
 import 'package:no_fap/data/notifier/start_date_notifier.dart';
-import 'package:no_fap/services/local_storage.dart';
 import 'package:no_fap/ui/components/badge_drawer.dart';
 import 'package:no_fap/ui/widgets/bottom_nav_bar.dart';
 import 'package:no_fap/ui/widgets/reset_button.dart';
 
+/**
+ * 
+ * Is the first showen screen to the user
+ * the main screen contain all the main pages
+ */
 class MainScreen extends StatefulWidget {
   final int SCREEN_INDEX = 0;
 
@@ -42,7 +47,6 @@ class MainScreenState extends State<MainScreen> {
   void _onHistoryChanged() {
     // This will be called when history is updated
     // You can add any UI updates here if needed
-    print("History changed");
   }
 
   void _onStartDateChanged() {
@@ -88,22 +92,24 @@ class MainScreenState extends State<MainScreen> {
         ),
       ),
       floatingActionButton: currentPageIndex == 0
-          ? Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ResetButton(onReset: resetStartDate),
-                const SizedBox(height: 8),
-                FloatingActionButton.extended(
-                  onPressed: _onPressResetButton,
-                  label: const Text("Reset to Null"),
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
-            )
+          ? (dotenv.env['ENV_MODE'] == 'dev'
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ResetButton(onReset: resetStartDate),
+                      const SizedBox(height: 8),
+                      FloatingActionButton.extended(
+                        onPressed: _onPressResetButton,
+                        label: const Text("Reset to NULL"),
+                        icon: const Icon(Icons.refresh),
+                      ),
+                    ],
+                  )
+                : ResetButton(onReset: resetStartDate))
           : (currentPageIndex == 1
                 ? FloatingActionButton.extended(
                     onPressed: _onPressResetHistoryButton,
-                    label: const Text("Reset History to Null"),
+                    label: const Text("Reset the History"),
                     icon: const Icon(Icons.refresh),
                   )
                 : null),
@@ -148,6 +154,6 @@ class MainScreenState extends State<MainScreen> {
 
   _onPressResetHistoryButton() async {
     await _historyNotifier.resetHistory();
-    print("History reset completed");
+    // print("History reset completed");
   }
 }
