@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/no_fap_api/src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/no_fap_api/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/no_fap_api",
+  "projects": {
+    "no-fap-api-gateway": {
+      "type": "application",
+      "root": "apps/no-fap-api-gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/no-fap-api-gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/no-fap-api-gateway/tsconfig.app.json"
+      }
+    },
+    "no_fap_api": {
+      "type": "application",
+      "root": "apps/no_fap_api",
+      "entryFile": "main",
+      "sourceRoot": "apps/no_fap_api/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/no_fap_api/tsconfig.app.json"
+      }
+    }
+  }
+}
