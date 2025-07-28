@@ -3,7 +3,9 @@ import { NoFapApiGatewayService } from './no-fap-api-gateway.service';
 
 @Controller()
 export class NoFapApiGatewayController {
-  constructor(private readonly noFapApiGatewayService: NoFapApiGatewayService) {}
+  constructor(
+    private readonly noFapApiGatewayService: NoFapApiGatewayService,
+  ) {}
 
   @Get()
   getHello(): string {

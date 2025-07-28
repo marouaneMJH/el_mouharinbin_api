@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  no-fap-api-gateway:
+    build:
+      context: .
+      dockerfile: apps/no-fap-api-gateway/Dockerfile
+    environment:
+      SERVICE_PORT: 3000
+    ports:
+      - '3000:3000'
+
+  # user-service:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/user-service/Dockerfile
+  #   environment:
+  #     SERVICE_PORT: 3002
+  #   ports:
+  #     - '3002:3002'
