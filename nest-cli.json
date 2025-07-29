@@ -25,7 +25,17 @@
       "entryFile": "main",
       "sourceRoot": "apps/mail/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/mail/tsconfig.app.json"
+        "tsConfigPath": "apps/mail/tsconfig.app.json",
+        "assets": [
+          {
+            "include": "**/*.ejs",
+            "outDir": "dist/apps/mail"
+          },
+          {
+            "include": "templates/**/*",
+            "outDir": "dist/apps/mail"
+          }
+        ]
       }
     },
     "no-fap-api-gateway": {
