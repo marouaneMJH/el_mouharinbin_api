@@ -4,7 +4,7 @@ import {
   Post,
   Body,
   // Patch,
-  Param,
+  // Param,
   // Delete,
 } from '@nestjs/common';
 import { MailService } from './mail.service';
@@ -21,18 +21,22 @@ export class MailController {
   // }
 
   @Get()
-  findAll() {
+  sendMail() {
     return this.mailService.sendMail();
+  }
+  @Get('x')
+  sendTemplate() {
+    return this.mailService.sendEmailWithTemplate();
   }
   @Post('welcome')
   sendWelcome() {
     return this.mailService.sendWelcome();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.mailService.findOne(+id);
-  }
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.mailService.findOne(+id);
+  // }
 
   // @Patch(':id')
   // update(@Param('id') id: string, @Body() updateMailDto: UpdateMailDto) {

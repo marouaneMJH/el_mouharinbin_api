@@ -1,0 +1,348 @@
+<!-- Variables used:
+
+appName - Your app name
+userName - User's name
+resetLink - Password reset URL
+expiryTime - Link expiration time
+supportEmail - Support contact
+currentYear - Current year -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activate Your Account - <%= appName %>
+    </title>
+    <style>
+        :root {
+            --power-black: #0a0a0a;
+            --power-charcoal: #1a1a1a;
+            --anger-red: #dc2626;
+            --anger-crimson: #991b1b;
+            --masculine-navy: #1e40af;
+            --discipline-blue: #1d4ed8;
+            --discipline-gray: #374151;
+            --text-primary: #ffffff;
+            --text-secondary: #d1d5db;
+            --text-muted: #9ca3af;
+            --bg-card: #374151;
+            --border-primary: #374151;
+            --gold-accent: #f59e0b;
+            --power-gradient: linear-gradient(135deg, #0a0a0a 0%, #991b1b 100%);
+            --success-green: #10b981;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--power-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .activation-container {
+            max-width: 500px;
+            width: 100%;
+            background: var(--power-charcoal);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--border-primary);
+        }
+
+        .status-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: 900;
+        }
+
+        .status-icon.success {
+            background: var(--success-green);
+            color: white;
+        }
+
+        .status-icon.pending {
+            background: var(--gold-accent);
+            color: var(--power-black);
+        }
+
+        .status-icon.error {
+            background: var(--anger-red);
+            color: white;
+        }
+
+        .app-logo {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+        }
+
+        .status-title {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        .status-message {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .user-info {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            margin: 30px 0;
+            border-left: 4px solid var(--discipline-blue);
+        }
+
+        .user-info h3 {
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .user-info p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        .action-button {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--discipline-blue) 0%, var(--masculine-navy) 100%);
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            margin: 10px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(29, 78, 216, 0.3);
+        }
+
+        .action-button.danger {
+            background: linear-gradient(135deg, var(--anger-red) 0%, var(--anger-crimson) 100%);
+        }
+
+        .action-button.danger:hover {
+            box-shadow: 0 10px 20px rgba(220, 38, 38, 0.3);
+        }
+
+        .resend-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid var(--border-primary);
+        }
+
+        .resend-text {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .features-preview {
+            background: var(--discipline-gray);
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 30px;
+        }
+
+        .features-preview h3 {
+            color: var(--text-primary);
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .feature-list {
+            list-style: none;
+            text-align: left;
+        }
+
+        .feature-list li {
+            color: var(--text-secondary);
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+            font-size: 16px;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--success-green);
+            font-weight: bold;
+        }
+
+        .footer-note {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-primary);
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            .activation-container {
+                padding: 30px 20px;
+            }
+
+            .status-title {
+                font-size: 24px;
+            }
+
+            .action-button {
+                display: block;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="activation-container">
+        <div class="app-logo">
+            <%= appName %>
+        </div>
+
+        <div class="status-icon <%= activationStatus %>">
+            <% if (activationStatus==='success' ) { %>
+                ✓
+                <% } else if (activationStatus==='pending' ) { %>
+                    ⏳
+                    <% } else { %>
+                        ✗
+                        <% } %>
+        </div>
+
+        <% if (activationStatus==='success' ) { %>
+            <h1 class="status-title">Account Activated!</h1>
+            <p class="status-message">
+                Welcome to <%= appName %>! Your account has been successfully activated and you're ready to experience
+                    the power of our platform.
+            </p>
+
+            <div class="user-info">
+                <h3>Account Details</h3>
+                <p><strong>Email:</strong>
+                    <%= userEmail %>
+                </p>
+                <p><strong>Username:</strong>
+                    <%= userName %>
+                </p>
+                <p><strong>Activated:</strong>
+                    <%= activationDate %>
+                </p>
+            </div>
+
+            <div class="features-preview">
+                <h3>What's Next?</h3>
+                <ul class="feature-list">
+                    <% features.forEach(function(feature) { %>
+                        <li>
+                            <%= feature %>
+                        </li>
+                        <% }); %>
+                </ul>
+            </div>
+
+            <a href="<%= loginUrl %>" class="action-button">Start Using <%= appName %></a>
+
+            <% } else if (activationStatus==='pending' ) { %>
+                <h1 class="status-title">Activation Pending</h1>
+                <p class="status-message">
+                    We've sent an activation link to <strong>
+                        <%= userEmail %>
+                    </strong>.
+                    Check your email and click the activation link to complete your registration.
+                </p>
+
+                <div class="user-info">
+                    <h3>Variables used:
+
+                        appName - Your app name
+                        userName - User's name
+                        resetLink - Password reset URL
+                        expiryTime - Link expiration time
+                        supportEmail - Support contact
+                        currentYear - Current yearNext Steps</h3>
+                    <p>1. Check your email inbox (and spam folder)</p>
+                    <p>2. Click the activation link in the email</p>
+                    <p>3. Return here to start using <%= appName %>
+                    </p>
+                </div>
+
+                <div class="resend-section">
+                    <p class="resend-text">Didn't receive the email?</p>
+                    <form action="<%= resendUrl %>" method="POST" style="display: inline;">
+                        <input type="hidden" name="email" value="<%= userEmail %>">
+                        <button type="submit" class="action-button">Resend Activation Email</button>
+                    </form>
+                </div>
+
+                <% } else { %>
+                    <h1 class="status-title">Activation Failed</h1>
+                    <p class="status-message">
+                        <%= errorMessage
+                            || 'The activation link is invalid or has expired. Please try requesting a new activation email.'
+                            %>
+                    </p>
+
+                    <div class="user-info">
+                        <h3>Troubleshooting</h3>
+                        <p>• Activation links expire after <%= linkExpiry || '24 hours' %>
+                        </p>
+                        <p>• Make sure you're using the latest email we sent</p>
+                        <p>• Contact support if the problem persists</p>
+                    </div>
+
+                    <a href="<%= resendUrl %>" class="action-button">Request New Activation</a>
+                    <a href="mailto:<%= supportEmail %>" class="action-button danger">Contact Support</a>
+                    <% } %>
+
+                        <div class="footer-note">
+                            <p>&copy; <%= currentYear %>
+                                    <%= appName %>. All rights reserved.</p>
+                            <p>Need help? Contact us at <a href="mailto:<%= supportEmail %>"
+                                    style="color: var(--anger-red);">
+                                    <%= supportEmail %>
+                                </a></p>
+                        </div>
+    </div>
+</body>
+
+</html>
