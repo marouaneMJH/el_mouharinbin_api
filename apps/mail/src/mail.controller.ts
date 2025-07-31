@@ -6,6 +6,11 @@ import { IEmail, IEmailData } from 'libs/contract/interfaces/email.interface';
 export class MailController {
   constructor(private readonly mailService: MailService) {}
 
+  @EventPattern('mail.sendMail')
+  async sendMail(@Payload() emailData: IEmailData) {
+    return await this.mailService.getRecord();
+  }
+
   @EventPattern('mail.sendWelcome')
   sendWelcomeEmail(@Payload() emailData: IEmail & { name: string }) {
     return this.mailService.sendWelcomeEmail(emailData.to, emailData.name);

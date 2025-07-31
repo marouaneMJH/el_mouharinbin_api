@@ -6,6 +6,8 @@ import { join } from 'path';
 import { MailService } from './mail.service';
 import { MailController } from './mail.controller';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
+import { NotionService } from './notion/notion.service';
 
 const getTemplatePath = () => {
   const isDev = process.env.NODE_ENV !== 'production';
@@ -61,9 +63,10 @@ const getTemplatePath = () => {
       },
       inject: [ConfigService],
     }),
+    HttpModule,
   ],
   controllers: [MailController],
-  providers: [MailService],
+  providers: [MailService, NotionService],
   exports: [MailService],
 })
 export class MailModule {}

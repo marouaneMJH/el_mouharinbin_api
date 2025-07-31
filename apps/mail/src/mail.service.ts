@@ -1,3 +1,4 @@
+import { NotionService } from './notion/notion.service';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, Logger } from '@nestjs/common';
@@ -7,10 +8,17 @@ import { MailerService } from '@nestjs-modules/mailer';
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
+  private readonly databaseId = process.env.NOTION_PAGE_ID ?? '';
 
-  constructor(private readonly mailerService: MailerService) {}
+  constructor(
+    private readonly mailerService: MailerService,
+    private readonly notionService: NotionService,
+  ) {}
 
-  private async sendMailUtils(emailData: IEmailData) {
+  private async sendMailUtils(
+    emailData: IEmailData,
+    fallback: boolean = false,
+  ) {
     const result = await this.mailerService.sendMail({
       to: emailData.email.to,
       from: emailData.from ?? process.env.EMAIL_USER,
@@ -22,22 +30,83 @@ export class MailService {
     this.logger.log(
       `[+] Email [${emailData.templateName ?? 'blank'}]] send with success to ${emailData.email.to}.`,
     );
-    return { success: true, messageId: result.messageId };
+
+    return { success: true, messageId: result.messageId, fallback };
   }
 
   private async sendEmail(emailData: IEmailData) {
     try {
-      return await this.sendMailUtils(emailData);
+      const result = await this.sendMailUtils(emailData);
+      this.notionService
+        .appendEmailRecordToNotion(
+          {
+            to: emailData.email.to,
+            from: emailData.from ?? process.env.EMAIL_USER ?? 'default',
+            subject: emailData.email.subject,
+            emailID: result.messageId,
+            fallback: result.fallback,
+            sended: true,
+            templateName: emailData.templateName ?? 'blank',
+          },
+          this.databaseId,
+        )
+        .then(() => {
+          this.logger.log('email added to database');
+        })
+        .catch((err: any) => {
+          this.logger.error('error during appending the email:', err);
+        });
+      return result;
     } catch {
       this.logger.log(
         `[?] Email [${emailData.templateName ?? 'blank'}]] not send to ${emailData.email.to}, trying the fallback email.`,
       );
       try {
-        return { ...(await this.sendMailUtils(emailData)), fallback: true };
+        const result = await this.sendMailUtils(emailData);
+        this.notionService
+          .appendEmailRecordToNotion(
+            {
+              to: emailData.email.to,
+              from: emailData.from ?? process.env.EMAIL_USER ?? 'default',
+              subject: emailData.email.subject,
+              emailID: result.messageId,
+              fallback: result.fallback,
+              sended: true,
+              templateName: emailData.templateName ?? 'blank',
+            },
+            this.databaseId,
+          )
+          .then(() => {
+            this.logger.log('email added to database');
+          })
+          .catch((err: any) => {
+            this.logger.error('error during appending the email:', err);
+          });
+        await this.sendMailUtils(emailData, true);
       } catch (error: any) {
         this.logger.log(
           `[?] Fallback email [${emailData.templateName ?? 'blank'}] not send to ${emailData.email.to}, ${error.message}.`,
         );
+        const result = await this.sendMailUtils(emailData);
+        this.notionService
+          .appendEmailRecordToNotion(
+            {
+              to: emailData.email.to,
+              from: emailData.from ?? process.env.EMAIL_USER ?? 'default',
+              subject: emailData.email.subject,
+              emailID: result.messageId,
+              fallback: result.fallback,
+              sended: false,
+              templateName: emailData.templateName ?? 'blank',
+            },
+            this.databaseId,
+          )
+          .then(() => {
+            this.logger.log('email added to database');
+          })
+          .catch((err: any) => {
+            this.logger.error('error during appending the email:', err);
+          });
       }
     }
   }
@@ -57,6 +126,10 @@ export class MailService {
     };
 
     return await this.sendEmail(emailData);
+  }
+
+  async getRecord() {
+    console.log(await this.notionService.getDatabase(this.databaseId));
   }
 
   async sendEmailWithTemplate(
