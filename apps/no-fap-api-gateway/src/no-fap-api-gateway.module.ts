@@ -3,7 +3,8 @@ import { NoFapApiGatewayController } from './no-fap-api-gateway.controller';
 import { NoFapApiGatewayService } from './no-fap-api-gateway.service';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
-import { MailModule } from './mail/mail.module';
+import { MailModule } from './modules/mail/mail.module';
+import { UsersModule } from './modules/users/users.module';
 
 console.log(__dirname);
 @Module({
@@ -13,6 +14,7 @@ console.log(__dirname);
       isGlobal: true,
     }),
     MailModule,
+    UsersModule,
   ],
   controllers: [NoFapApiGatewayController],
   providers: [NoFapApiGatewayService],

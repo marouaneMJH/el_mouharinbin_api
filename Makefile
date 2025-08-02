@@ -1,21 +1,38 @@
-.PHONY: build up down logs restart rebuild
+.PHONY: build up down logs restart rebuild db db-connect
 
+# === CONFIGURATION ===
+ENV_FILE = apps/users/.env
+
+
+DC = docker-compose --env-file $(ENV_FILE)
+
+# === COMMANDS ===
 build:
-	docker-compose build
+	$(DC) build
 
 up:
-	docker-compose up -d
+	$(DC) up -d
 
 down:
-	docker-compose down
+	$(DC) down
 
 logs:
-	docker-compose logs -f
+	$(DC) logs -f
+
+db:
+	$(DC) exec db sh
 
 restart:
-	docker-compose down && docker-compose up -d
-`
+	$(DC) down && $(DC) up -d
+
 rebuild:
-	docker-compose down
-	docker-compose build --no-cache
-	docker-compose up -d
+	$(DC) down
+	$(DC) build --no-cache
+	$(DC) up -d
+
+# === DB CONNECTION (requires psql inside container) ===
+db-connect:
+	@export $$(cat $(ENV_FILE) | xargs) && \
+	docker-compose --env-file $(ENV_FILE) exec db \
+	psql -U $$POSTGRES_USER -d $$POSTGRES_DB
+

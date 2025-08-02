@@ -11,7 +11,9 @@ describe('NoFapApiGatewayController', () => {
       providers: [NoFapApiGatewayService],
     }).compile();
 
-    noFapApiGatewayController = app.get<NoFapApiGatewayController>(NoFapApiGatewayController);
+    noFapApiGatewayController = app.get<NoFapApiGatewayController>(
+      NoFapApiGatewayController,
+    );
   });
 
   describe('root', () => {
