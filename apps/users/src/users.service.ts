@@ -4,18 +4,19 @@ import {
   Logger,
   BadRequestException,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { CreateUserDto } from '../../../libs/contract/dtos/users/create-user.dto';
 import { UpdateUserDto } from '../../../libs/contract/dtos/users/update-user.dto';
 import { Prisma, User } from './generated/client';
 import * as bcrypt from 'bcrypt';
 import { UserQueryOptions } from 'libs/contract/interfaces/user.interface';
+import { UserStatus, UserStatusHelper } from 'libs/contract/enums/user.enum';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
-  private readonly BCRYPT_SALT_ROUND =
-    Number(process.env.BCRYPT_SALT_ROUND) || 12;
+  private readonly BCRYPT_SALT_ROUND = this.getBcryptSaltRound();
 
   private readonly usersIncludes = {
     include: {
@@ -27,64 +28,53 @@ export class UsersService {
     },
   } as const;
 
-  private verifyBcryptValue(): void {
-    if (
-      this.BCRYPT_SALT_ROUND == null ||
-      this.BCRYPT_SALT_ROUND == undefined ||
-      typeof this.BCRYPT_SALT_ROUND !== 'number' ||
-      this.BCRYPT_SALT_ROUND < 10 ||
-      this.BCRYPT_SALT_ROUND > 15
-    ) {
-      throw new Error(
-        'BCRYPT_SALT_ROUND must be a number between 10 and 15. Current value: ' +
-          this.BCRYPT_SALT_ROUND,
+  constructor(private readonly prisma: PrismaService) {}
+
+  private getBcryptSaltRound(): number {
+    const saltRound = Number(process.env.BCRYPT_SALT_ROUND) || 12;
+
+    if (isNaN(saltRound) || saltRound < 10 || saltRound > 15) {
+      this.logger.warn(
+        `Invalid BCRYPT_SALT_ROUND: ${process.env.BCRYPT_SALT_ROUND}. Using default: 12`,
       );
+      return 12;
     }
-    this.logger.log(`Bcrypt salt rounds configured: ${this.BCRYPT_SALT_ROUND}`);
+
+    this.logger.log(`Bcrypt salt rounds configured: ${saltRound}`);
+    return saltRound;
   }
 
-  // Check if user exists
-  private async exists(id: string): Promise<boolean> {
-    try {
-      const user = await this.prisma.user.findUnique({
-        where: { id },
-        select: { id: true },
-      });
-      return !!user;
-    } catch (error) {
-      this.logger.error(`Error checking if user ${id} exists:`, error);
-      return false;
+  private validateEmail(email: string): void {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new BadRequestException('Invalid email format');
     }
   }
 
-  // Get user's roles only
-  private async getUserRoles(userId: string): Promise<string[]> {
-    try {
-      const userWithRoles = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          roles: {
-            select: {
-              role: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-      return userWithRoles?.roles.map((ur) => ur.role.name) || [];
-    } catch (error) {
-      this.logger.error(`Error getting roles for user ${userId}:`, error);
-      return [];
+  private validateId(id: string, fieldName = 'ID'): void {
+    if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      throw new BadRequestException(`Invalid ${fieldName} provided`);
     }
   }
 
-  constructor(private readonly prisma: PrismaService) {
-    this.verifyBcryptValue();
+  private handlePrismaError(error: any, context: string): never {
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      switch (error.code) {
+        case 'P2002':
+          const field = error.meta?.target as string[];
+          const fieldName = field?.[0] || 'field';
+          throw new ConflictException(`${fieldName} already exists`);
+        case 'P2025':
+          throw new NotFoundException('Record not found');
+        case 'P2003':
+          throw new BadRequestException('Foreign key constraint failed');
+        default:
+          this.logger.error(`Prisma error in ${context}:`, error);
+          throw error;
+      }
+    }
+    this.logger.error(`Error in ${context}:`, error);
+    throw error;
   }
 
   async user(
@@ -96,114 +86,156 @@ export class UsersService {
         ...this.usersIncludes,
       });
     } catch (error) {
-      this.logger.error('Error finding user:', error);
-      throw error;
+      this.handlePrismaError(error, 'finding user');
     }
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    this.logger.debug('this :', createUserDto);
+    const { password, email, ...userData } = createUserDto;
+
+    // Validate inputs
+    this.validateEmail(email);
+    if (!password || password.length < 8) {
+      throw new BadRequestException(
+        'Password must be at least 8 characters long',
+      );
+    }
 
     try {
-      // Extract the password and the user data
-      const { password, ...userData } = createUserDto;
-
-      // Hash password before saving
+      // Hash password
       const hashedPassword = await bcrypt.hash(
         password,
         this.BCRYPT_SALT_ROUND,
       );
 
-      // The conflict will be verified by the database
+      // Normalize email
+      const normalizedEmail = email.toLowerCase().trim();
+
       const user = await this.prisma.user.create({
-        data: { ...userData, password: hashedPassword },
+        data: {
+          ...userData,
+          email: normalizedEmail,
+          password: hashedPassword,
+          status: UserStatus.PENDING,
+        },
         ...this.usersIncludes,
       });
 
-      this.logger.log(`User created successfully: ${user.email}`);
+      this.logger.log(
+        `User created successfully: ${user.email} with status: ${user.status}`,
+      );
       return user;
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new BadRequestException('User with this email already exists');
-        }
-      }
-      this.logger.error('Error creating user:', error);
-      throw error;
+      this.handlePrismaError(error, 'creating user');
     }
   }
 
   async findAll(params: UserQueryOptions = {}): Promise<User[]> {
     try {
-      // Extract the params
       const { skip, take, cursor, where, orderBy } = params;
+
+      // Add default ordering if none provided
+      const defaultOrderBy = orderBy || { createdAt: 'desc' };
 
       return await this.prisma.user.findMany({
         skip,
         take,
         where,
         cursor,
-        orderBy,
+        orderBy: defaultOrderBy,
         ...this.usersIncludes,
       });
     } catch (error) {
-      this.logger.error('Error finding users:', error);
-      throw error;
+      this.handlePrismaError(error, 'finding users');
     }
   }
 
   async findOne(id: string): Promise<User | null> {
-    try {
-      if (!id || typeof id !== 'string') {
-        throw new BadRequestException('Invalid user ID provided');
-      }
+    this.validateId(id, 'user ID');
 
-      return await this.prisma.user.findUnique({
+    try {
+      const user = await this.prisma.user.findUnique({
         where: { id },
         ...this.usersIncludes,
       });
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      return user;
     } catch (error) {
-      this.logger.error(`Error finding user with ID ${id}:`, error);
-      throw error;
+      if (error instanceof NotFoundException) throw error;
+      this.handlePrismaError(error, `finding user with ID ${id}`);
     }
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    try {
-      if (!email || typeof email !== 'string') {
-        throw new BadRequestException('Invalid email provided');
-      }
+    this.validateEmail(email);
 
+    try {
       return await this.prisma.user.findUnique({
         where: { email: email.toLowerCase().trim() },
         ...this.usersIncludes,
       });
     } catch (error) {
-      this.logger.error(`Error finding user with email ${email}:`, error);
-      throw error;
+      this.handlePrismaError(error, `finding user with email ${email}`);
     }
   }
 
-  // Update user
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    try {
-      const { password, ...userData } = updateUserDto;
+    this.validateId(id, 'user ID');
 
-      const updateData: Prisma.UserUpdateInput = { ...userData };
+    const { password, email, status, ...userData } = updateUserDto;
+    const updateData: Prisma.UserUpdateInput = { ...userData };
 
-      // Hash password if it's being updated
-      if (password) {
-        updateData.password = await bcrypt.hash(
-          password,
-          this.BCRYPT_SALT_ROUND,
+    // Validate and normalize email if provided
+    if (email) {
+      this.validateEmail(email);
+      updateData.email = email.toLowerCase().trim();
+    }
+
+    // Hash password if provided
+    if (password) {
+      if (password.length < 8) {
+        throw new BadRequestException(
+          'Password must be at least 8 characters long',
+        );
+      }
+      updateData.password = await bcrypt.hash(password, this.BCRYPT_SALT_ROUND);
+    }
+
+    // Validate status transition if provided
+    if (status) {
+      if (!Object.values(UserStatus).includes(status)) {
+        throw new BadRequestException('Invalid user status');
+      }
+
+      // Get current user to check status transition
+      const currentUser = await this.prisma.user.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+
+      if (!currentUser) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (
+        !UserStatusHelper.canTransitionTo(
+          currentUser.status as UserStatus,
+          status,
+        )
+      ) {
+        throw new BadRequestException(
+          `Cannot transition from ${currentUser.status} to ${status}`,
         );
       }
 
-      // Normalize email if provided
-      if (userData.email) {
-        updateData.email = userData.email.toLowerCase().trim();
-      }
+      updateData.status = status;
+    }
 
+    try {
       const user = await this.prisma.user.update({
         where: { id },
         data: updateData,
@@ -213,59 +245,80 @@ export class UsersService {
       this.logger.log(`User updated successfully: ${user.email}`);
       return user;
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new BadRequestException('Email already exists');
-        }
-        if (error.code === 'P2025') {
-          throw new NotFoundException('User not found');
-        }
-      }
-      this.logger.error(`Error updating user with ID ${id}:`, error);
-      throw error;
+      this.handlePrismaError(error, `updating user with ID ${id}`);
     }
   }
 
-  // Soft delete or hard delete user
   async remove(id: string): Promise<User> {
+    this.validateId(id, 'user ID');
+
     try {
-      // Check if user exists first
-      const userExists = await this.prisma.user.findUnique({
-        where: { id },
-        select: { id: true },
-      });
+      // Use transaction to ensure data consistency
+      const result = await this.prisma.$transaction(async (tx) => {
+        // Check if user exists
+        const user = await tx.user.findUnique({
+          where: { id },
+          select: { id: true, email: true, status: true },
+        });
 
-      if (!userExists) {
-        throw new NotFoundException('User not found');
-      }
-
-      // First, remove all user roles
-      await this.prisma.userRole.deleteMany({
-        where: { userID: id },
-      });
-
-      // Then delete the user
-      const deletedUser = await this.prisma.user.delete({
-        where: { id },
-      });
-
-      this.logger.log(`User deleted successfully: ${deletedUser.email}`);
-      return deletedUser;
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
+        if (!user) {
           throw new NotFoundException('User not found');
         }
-      }
-      this.logger.error(`Error deleting user with ID ${id}:`, error);
-      throw error;
+
+        // Soft delete by updating status instead of hard delete
+        if (user.status !== UserStatus.DELETED) {
+          return await tx.user.update({
+            where: { id },
+            data: { status: UserStatus.DELETED },
+            ...this.usersIncludes,
+          });
+        }
+
+        // If already soft deleted, perform hard delete
+        // Remove all user roles first
+        await tx.userRole.deleteMany({
+          where: { userID: id },
+        });
+
+        // Delete the user
+        return await tx.user.delete({
+          where: { id },
+        });
+      });
+
+      this.logger.log(
+        `User ${result.status === UserStatus.DELETED ? 'soft deleted' : 'hard deleted'}: ${result.email}`,
+      );
+      return result;
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      this.handlePrismaError(error, `deleting user with ID ${id}`);
     }
   }
 
-  // Assign role to user
   async assignRole(userId: string, roleId: string): Promise<void> {
+    this.validateId(userId, 'user ID');
+    this.validateId(roleId, 'role ID');
+
     try {
-      // Check if user and role exist
+      // Use upsert to handle race conditions
+      await this.prisma.userRole.upsert({
+        where: {
+          userID_roleID: {
+            userID: userId,
+            roleID: roleId,
+          },
+        },
+        update: {}, // No update needed if exists
+        create: {
+          userID: userId,
+          roleID: roleId,
+        },
+      });
+
+      this.logger.log(`Role ${roleId} assigned to user ${userId}`);
+    } catch (error) {
+      // Check if user/role exists
       const [user, role] = await Promise.all([
         this.prisma.user.findUnique({
           where: { id: userId },
@@ -277,37 +330,20 @@ export class UsersService {
         }),
       ]);
 
-      if (!user) {
-        throw new NotFoundException('User not found');
-      }
-      if (!role) {
-        throw new NotFoundException('Role not found');
-      }
+      if (!user) throw new NotFoundException('User not found');
+      if (!role) throw new NotFoundException('Role not found');
 
-      await this.prisma.userRole.create({
-        data: {
-          userID: userId,
-          roleID: roleId,
-        },
-      });
-
-      this.logger.log(`Role ${roleId} assigned to user ${userId}`);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new BadRequestException('User already has this role');
-        }
-      }
-      this.logger.error(
-        `Error assigning role ${roleId} to user ${userId}:`,
+      this.handlePrismaError(
         error,
+        `assigning role ${roleId} to user ${userId}`,
       );
-      throw error;
     }
   }
 
-  // Remove role from user
   async removeRole(userId: string, roleId: string): Promise<void> {
+    this.validateId(userId, 'user ID');
+    this.validateId(roleId, 'role ID');
+
     try {
       await this.prisma.userRole.delete({
         where: {
@@ -320,23 +356,18 @@ export class UsersService {
 
       this.logger.log(`Role ${roleId} removed from user ${userId}`);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2025') {
-          throw new NotFoundException('User role assignment not found');
-        }
-      }
-      this.logger.error(
-        `Error removing role ${roleId} from user ${userId}:`,
+      this.handlePrismaError(
         error,
+        `removing role ${roleId} from user ${userId}`,
       );
-      throw error;
     }
   }
 
-  // Get users by role
   async findUsersByRole(roleId: string): Promise<User[]> {
+    this.validateId(roleId, 'role ID');
+
     try {
-      // Validate role exists
+      // Validate role exists first
       const role = await this.prisma.role.findUnique({
         where: { id: roleId },
         select: { id: true },
@@ -357,34 +388,41 @@ export class UsersService {
         ...this.usersIncludes,
       });
     } catch (error) {
-      this.logger.error(`Error finding users by role ${roleId}:`, error);
-      throw error;
+      if (error instanceof NotFoundException) throw error;
+      this.handlePrismaError(error, `finding users by role ${roleId}`);
     }
   }
 
-  // Count total users
   async count(where?: Prisma.UserWhereInput): Promise<number> {
     try {
       return await this.prisma.user.count({ where });
     } catch (error) {
-      this.logger.error('Error counting users:', error);
-      throw error;
+      this.handlePrismaError(error, 'counting users');
     }
   }
 
-  // Verify user password
   async verifyPassword(userId: string, password: string): Promise<boolean> {
-    try {
-      if (!password || !userId) {
-        return false;
-      }
+    if (!password || !userId) {
+      return false;
+    }
 
+    this.validateId(userId, 'user ID');
+
+    try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { password: true },
+        select: { password: true, status: true },
       });
 
       if (!user?.password) {
+        return false;
+      }
+
+      // Check if user can login based on status
+      if (!UserStatusHelper.canLogin(user.status as UserStatus)) {
+        this.logger.warn(
+          `Login attempt for user ${userId} with status: ${user.status}`,
+        );
         return false;
       }
 
@@ -400,5 +438,186 @@ export class UsersService {
     }
   }
 
-  // Additional helper methods
+  // New utility methods
+  async exists(id: string): Promise<boolean> {
+    this.validateId(id, 'user ID');
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+      return !!user;
+    } catch (error) {
+      this.logger.error(`Error checking if user ${id} exists:`, error);
+      return false;
+    }
+  }
+
+  async getUserRoles(userId: string): Promise<string[]> {
+    this.validateId(userId, 'user ID');
+
+    try {
+      const userWithRoles = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          roles: {
+            select: {
+              role: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return userWithRoles?.roles.map((ur) => ur.role.name) || [];
+    } catch (error) {
+      this.logger.error(`Error getting roles for user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async updateLastLogin(userId: string): Promise<void> {
+    this.validateId(userId, 'user ID');
+
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { lastLoginAt: new Date() },
+      });
+    } catch (error) {
+      this.logger.error(`Error updating last login for user ${userId}:`, error);
+      // Don't throw - this is not critical
+    }
+  }
+
+  async deactivateUser(userId: string): Promise<User> {
+    this.validateId(userId, 'user ID');
+
+    try {
+      const user = await this.prisma.user.update({
+        where: { id: userId },
+        data: { status: UserStatus.INACTIVE },
+        ...this.usersIncludes,
+      });
+
+      this.logger.log(`User deactivated: ${user.email}`);
+      return user;
+    } catch (error) {
+      this.handlePrismaError(error, `deactivating user with ID ${userId}`);
+    }
+  }
+
+  async activateUser(userId: string): Promise<User> {
+    this.validateId(userId, 'user ID');
+
+    try {
+      const user = await this.prisma.user.update({
+        where: { id: userId },
+        data: { status: UserStatus.ACTIVE },
+        ...this.usersIncludes,
+      });
+
+      this.logger.log(`User activated: ${user.email}`);
+      return user;
+    } catch (error) {
+      this.handlePrismaError(error, `activating user with ID ${userId}`);
+    }
+  }
+
+  async suspendUser(userId: string): Promise<User> {
+    this.validateId(userId, 'user ID');
+
+    try {
+      const user = await this.prisma.user.update({
+        where: { id: userId },
+        data: { status: UserStatus.SUSPENDED },
+        ...this.usersIncludes,
+      });
+
+      this.logger.log(`User suspended: ${user.email}`);
+      return user;
+    } catch (error) {
+      this.handlePrismaError(error, `suspending user with ID ${userId}`);
+    }
+  }
+
+  async changeUserStatus(userId: string, newStatus: UserStatus): Promise<User> {
+    this.validateId(userId, 'user ID');
+
+    if (!Object.values(UserStatus).includes(newStatus)) {
+      throw new BadRequestException('Invalid user status');
+    }
+
+    try {
+      // Get current user to check status transition
+      const currentUser = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { status: true, email: true },
+      });
+
+      if (!currentUser) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (
+        !UserStatusHelper.canTransitionTo(
+          currentUser.status as UserStatus,
+          newStatus as UserStatus,
+        )
+      ) {
+        throw new BadRequestException(
+          `Cannot transition from ${currentUser.status} to ${newStatus}`,
+        );
+      }
+
+      const user = await this.prisma.user.update({
+        where: { id: userId },
+        data: { status: newStatus },
+        ...this.usersIncludes,
+      });
+
+      this.logger.log(
+        `User status changed from ${currentUser.status} to ${newStatus}: ${user.email}`,
+      );
+      return user;
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof BadRequestException
+      ) {
+        throw error;
+      }
+      this.handlePrismaError(
+        error,
+        `changing status for user with ID ${userId}`,
+      );
+    }
+  }
+
+  async findUsersByStatus(status: UserStatus): Promise<User[]> {
+    if (!Object.values(UserStatus).includes(status)) {
+      throw new BadRequestException('Invalid user status');
+    }
+
+    try {
+      return await this.prisma.user.findMany({
+        where: { status },
+        ...this.usersIncludes,
+      });
+    } catch (error) {
+      this.handlePrismaError(error, `finding users by status ${status}`);
+    }
+  }
+
+  async getActiveUsers(): Promise<User[]> {
+    return this.findUsersByStatus(UserStatus.ACTIVE);
+  }
+
+  async getPendingUsers(): Promise<User[]> {
+    return this.findUsersByStatus(UserStatus.PENDING);
+  }
 }

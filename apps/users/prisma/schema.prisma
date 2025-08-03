@@ -13,11 +13,16 @@ model User {
   email      String     @unique
   password   String
   name       String?
+  status     UserStatus @default(PENDING)
   createdAt  DateTime   @default(now())
+  lastLoginAt DateTime?
   updateDate DateTime   @updatedAt
   roles      UserRole[]
-}
 
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
 model Role {
   id          String     @id @default(uuid())
   name        String     @unique
@@ -35,4 +40,13 @@ model UserRole {
   user         User     @relation(fields: [userID], references: [id])
 
   @@unique([userID, roleID])
+}
+
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+  DELETED
 }
