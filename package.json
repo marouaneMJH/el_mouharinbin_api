@@ -20,13 +20,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./apps/no_fap_api/test/jest-e2e.json",
     "prisma:generate:users": "cd apps/users && npx prisma generate",
-    "prisma:generate:mail": "cd apps/mail && npx prisma generate",
     "prisma:migrate:users": "cd apps/users && npx prisma migrate dev",
-    "prisma:migrate:mail": "cd apps/mail && npx prisma migrate dev",
     "prisma:studio:users": "cd apps/users && npx prisma studio",
-    "prisma:studio:mail": "cd apps/mail && npx prisma studio",
-    "prisma:seed:users": "cd apps/users && npx prisma db seed",
-    "prisma:seed:mail": "cd apps/mail && npx prisma db seed"
+    "prisma:seed:users": "cd apps/users && npx prisma db seed"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^2.0.2",
@@ -37,6 +33,7 @@
     "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/microservices": "^11.1.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/swagger": "^11.2.0",
     "@prisma/client": "^6.13.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
@@ -46,6 +43,7 @@
     "nodemailer": "^7.0.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "swagger-ui-express": "^5.0.1",
     "users": "^2.0.0"
   },
   "devDependencies": {

@@ -32,7 +32,6 @@ rebuild:
 
 # === DB CONNECTION (requires psql inside container) ===
 db-connect:
-	@export $$(cat $(ENV_FILE) | xargs) && \
+	@export $$(grep -v '^#' $(ENV_FILE) | xargs) && \
 	docker-compose --env-file $(ENV_FILE) exec db \
 	psql -U $$POSTGRES_USER -d $$POSTGRES_DB
-

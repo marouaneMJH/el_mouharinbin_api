@@ -17,6 +17,7 @@ import { UserStatus, UserStatusHelper } from 'libs/contract/enums/user.enum';
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
   private readonly BCRYPT_SALT_ROUND = this.getBcryptSaltRound();
+  private readonly USER_ROLE_ID = 'fc959621-5ea9-4e7a-85e0-25883ce9bd9b'
 
   private readonly usersIncludes = {
     include: {
@@ -40,7 +41,6 @@ export class UsersService {
       return 12;
     }
 
-    this.logger.log(`Bcrypt salt rounds configured: ${saltRound}`);
     return saltRound;
   }
 
@@ -125,6 +125,13 @@ export class UsersService {
       this.logger.log(
         `User created successfully: ${user.email} with status: ${user.status}`,
       );
+
+      try{
+        await this.assignRole(user.id, this.USER_ROLE_ID);
+        this.logger.log('assign user role to user with id\'', user.id)
+      }catch{
+        this.logger.error('error to assign user role to user with id\'', user.id)
+      }
       return user;
     } catch (error) {
       this.handlePrismaError(error, 'creating user');
