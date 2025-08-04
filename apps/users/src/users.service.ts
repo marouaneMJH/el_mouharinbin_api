@@ -45,8 +45,9 @@ export class UsersService {
   }
 
   private validateEmail(email: string): void {
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email.toLowerCase().trim())) {
       throw new BadRequestException('Invalid email format');
     }
   }
@@ -171,7 +172,8 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    this.validateEmail(email);
+
+    this.validateEmail(email.toLowerCase().trim());
 
     try {
       return await this.prisma.user.findUnique({

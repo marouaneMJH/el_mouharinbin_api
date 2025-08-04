@@ -9,84 +9,28 @@ import {
 } from '@nestjs/common';
 
 import { UserStatus, UserStatusHelper } from 'libs/contract/enums/user.enum';
-import { mockCreateUserDto } from './__test__/fixtures/user.fixtuers.ts';
+import {
+  mockCreateUserDto,
+  mockRole,
+  mockUpdateUserDto,
+  mockUser,
+  mockUserWithRoles,
+} from './__tests__/fixtures/user.fixtures';
+import {mockPrismaService} from './__tests__/mocks/prisma.service.mock';
 import { Prisma } from './generated/client';
 import * as bcrypt from 'bcrypt';
 
 describe('UsersService', () => {
   let service: UsersService;
   let prisma: PrismaService;
+  // use
+  // const mockLogger = {
+  //   log: jest.fn(),
+  //   error: jest.fn(),
+  //   warn: jest.fn(),
+  // };
 
-  const mockLogger = {
-    log: jest.fn(),
-    error: jest.fn(),
-    warn: jest.fn(),
-  };
 
-  const mockUser = {
-    id: 'user-1',
-    email: 'test@example.com',
-    password: 'hashedPassword123',
-    firstName: 'Test',
-    lastName: 'User',
-    status: UserStatus.ACTIVE,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    lastLoginAt: null,
-    roles: [],
-  };
-
-  const mockRole = {
-    id: 'role-1',
-    name: 'admin',
-    description: 'Admin role',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockUserWithRoles = {
-    ...mockUser,
-    roles: [
-      {
-        role: mockRole,
-        userID: 'user-1',
-        roleID: 'role-1',
-        assignedAt: new Date(),
-      },
-    ],
-  };
-
-  const mockCreateUserDto = {
-    email: 'new@example.com',
-    password: 'password123',
-    firstName: 'New',
-    lastName: 'User',
-  };
-
-  const mockUpdateUserDto = {
-    firstName: 'Updated',
-    lastName: 'User',
-  };
-
-  const mockPrismaService = {
-    user: {
-      findUnique: jest.fn(),
-      findMany: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-    },
-    userRole: {
-      upsert: jest.fn(),
-      delete: jest.fn(),
-      deleteMany: jest.fn(),
-    },
-    role: {
-      findUnique: jest.fn(),
-    },
-    $transaction: jest.fn(),
-  };
 
   const resetMocks = () => {
     Object.values(mockPrismaService.user).forEach((mockFn) =>
@@ -727,7 +671,7 @@ describe('UsersService', () => {
   describe('findOne', () => {
     it('should return a user when it found', async () => {
       // Arrange - Set up the mock to return our test data
-      prisma.user.findUnique.mockResolvedValue(mockUserWithRoles);
+      mockPrismaService.user.findUnique.mockResolvedValue(mockUserWithRoles);
 
       const result = await service.findOne('user-123');
 
@@ -763,7 +707,7 @@ describe('UsersService', () => {
 
   describe('findAll', () => {
     it('should return all the users with empty params', async () => {
-      prisma.user.findMany.mockResolvedValue([mockUserWithRoles]);
+      mockPrismaService.user.findMany.mockResolvedValue([mockUserWithRoles]);
 
       await expect(service.findAll()).resolves.toEqual([mockUserWithRoles]);
     });

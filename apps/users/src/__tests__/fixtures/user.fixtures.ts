@@ -1,5 +1,5 @@
-import { UserStatus } from './../../../../../libs/contract/enums/user.enum';
-import { User, Role, UserRole } from '../../generated/client';
+import { UserStatus } from '../../../../../libs/contract/enums/user.enum';
+import { User, Role } from '../../generated/client';
 
 // Simple mock role
 export const mockRole: Role = {
