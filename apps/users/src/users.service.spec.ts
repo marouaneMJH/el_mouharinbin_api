@@ -17,7 +17,7 @@ import {
   mockUserWithRoles,
 } from './__tests__/fixtures/user.fixtures';
 import {mockPrismaService} from './__tests__/mocks/prisma.service.mock';
-import { Prisma } from './generated/client';
+import { Prisma } from '../../../libs/contract/prisma/generated/client';
 import * as bcrypt from 'bcrypt';
 
 describe('UsersService', () => {

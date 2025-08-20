@@ -26,7 +26,7 @@ export class UsersController {
   }
 
   @MessagePattern(servicesPattern.users.find_by_email)
-  async findByEmail(@Payload() email: string) {
+  async findByEmail(@Payload() {email}:{ email: string }) {
     return this.usersService.findByEmail(email);
   }
 

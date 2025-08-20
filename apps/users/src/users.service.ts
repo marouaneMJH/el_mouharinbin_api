@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { CreateUserDto } from '../../../libs/contract/dtos/users/create-user.dto';
 import { UpdateUserDto } from '../../../libs/contract/dtos/users/update-user.dto';
-import { Prisma, User } from './generated/client';
+import { Prisma, User } from '../../../libs/contract/prisma/generated/client';
 import * as bcrypt from 'bcrypt';
 import { UserQueryOptions } from 'libs/contract/interfaces/user.interface';
 import { UserStatus, UserStatusHelper } from 'libs/contract/enums/user.enum';
@@ -180,7 +180,7 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<User | null> {
 
-    this.validateEmail(email.toLowerCase().trim());
+    this.validateEmail(email.trim().toLowerCase());
 
     try {
       return await this.prisma.user.findUnique({

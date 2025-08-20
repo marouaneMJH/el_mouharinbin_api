@@ -26,6 +26,21 @@ const servicesOptions: Record<string, ClientsModuleOptions> = {
       },
     },
   ],
+  auth: [
+    {
+      name: 'AUTH_SERVICE',
+      transport: Transport.TCP, // app.useGlobalPipes(
+      //   new ValidationPipe({
+      //     whitelist: true,
+      //     forbidNonWhitelisted: true,
+      //     transform: true,
+      //   }),
+      // );
+      options: {
+        port: 3003,
+      },
+    },
+  ],
 };
 export { servicesOptions };
 export default servicesOptions;

@@ -1,4 +1,4 @@
-import { User } from 'apps/users/src/generated/client';
+import { User } from '../prisma/generated/client';
 
 export class PaginatedUsersDto {
   users: User[];
