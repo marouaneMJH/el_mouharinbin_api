@@ -8,7 +8,7 @@ import { join } from 'path';
 function loadConfigModule() {
   const paths = [
     join(process.cwd(), 'apps/users/.env'),
-    join(process.cwd(), '.env'),
+    '.env.shared',
   ];
 
   const config = ConfigModule.forRoot({

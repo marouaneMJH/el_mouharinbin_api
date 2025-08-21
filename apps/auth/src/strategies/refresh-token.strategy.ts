@@ -3,8 +3,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy, StrategyOptionsWithRequest } from 'passport-jwt';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
-import { UserStatus } from 'libs/contract/enums/user.enum';
-import { UserI } from 'libs/contract/interfaces/user.interface';
+import { UserStatus } from '../../../../libs/contract/enums/user.enum';
+import { UserI } from '../../../../libs/contract/interfaces/user.interface';
 
 @Injectable()
 export class RefreshTokenStrategy extends PassportStrategy(

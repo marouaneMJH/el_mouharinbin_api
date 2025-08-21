@@ -6,12 +6,16 @@ import { join } from 'path';
 import { MailModule } from './modules/mail/mail.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { JwtStrategy } from '../../../libs/contract/strategies/jwt.strategy';
+import { AppConfigModule } from '../../../libs/contract/config/config.module';
+import configuration from '../../../libs/contract/config/configuration';
 
 console.log(__dirname);
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: join(__dirname, '.env'),
+      envFilePath: ['.env.shared',join(__dirname, '.env') ],
+      // load: [configuration],
       isGlobal: true,
     }),
     MailModule,
@@ -19,6 +23,6 @@ console.log(__dirname);
     AuthModule,
   ],
   controllers: [NoFapApiGatewayController],
-  providers: [NoFapApiGatewayService],
+  providers: [NoFapApiGatewayService, JwtStrategy],
 })
 export class NoFapApiGatewayModule {}

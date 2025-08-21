@@ -37,7 +37,7 @@ const servicesOptions: Record<string, ClientsModuleOptions> = {
       //   }),
       // );
       options: {
-        port: 3003,
+        port: 3004,
       },
     },
   ],

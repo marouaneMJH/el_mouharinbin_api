@@ -26,8 +26,8 @@ const getTemplatePath = () => {
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
-        join(process.cwd(), 'apps/mail/.env'),
-        join(process.cwd(), '.env'),
+        join(process.cwd(), 'apps/mail/.env.shared'),
+        join(process.cwd(), '.env.shared'),
       ],
       cache: true,
     }),

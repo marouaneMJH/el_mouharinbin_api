@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { NoFapApiGatewayService } from './no-fap-api-gateway.service';
+import { JwtAuthGuard } from '../../../libs/contract/guards/jwt.guard';
 
 @Controller()
 export class NoFapApiGatewayController {
@@ -8,6 +9,7 @@ export class NoFapApiGatewayController {
   ) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   getHello(): string {
     return this.noFapApiGatewayService.getHello();
   }
