@@ -1,12 +1,3 @@
-<!-- Variables used:
-
-appName - Your app name
-userName - User's name
-resetLink - Password reset URL
-expiryTime - Link expiration time
-supportEmail - Support contact
-currentYear - Current year -->
-
 
 <!DOCTYPE html>
 <html lang="en">
@@ -240,16 +231,18 @@ currentYear - Current year -->
         </div>
 
         <div class="status-icon <%= activationStatus %>">
-            <% if (activationStatus==='success' ) { %>
+            <% if (activationStatus==='ACTIVE' ) { %>
+                    <p>
                 ✓
-                <% } else if (activationStatus==='pending' ) { %>
-                    ⏳
+                    </p>
+                <% } else if (activationStatus === 'ACTIVE' ) { %>
+                    <p>⏳</p>
                     <% } else { %>
-                        ✗
+            <i>X</i>
                         <% } %>
         </div>
 
-        <% if (activationStatus==='success' ) { %>
+        <% if (activationStatus==='ACTIVE' ) { %>
             <h1 class="status-title">Account Activated!</h1>
             <p class="status-message">
                 Welcome to <%= appName %>! Your account has been successfully activated and you're ready to experience
@@ -282,44 +275,40 @@ currentYear - Current year -->
 
             <a href="<%= loginUrl %>" class="action-button">Start Using <%= appName %></a>
 
-            <% } else if (activationStatus==='pending' ) { %>
-                <h1 class="status-title">Activation Pending</h1>
-                <p class="status-message">
-                    We've sent an activation link to <strong>
-                        <%= userEmail %>
-                    </strong>.
-                    Check your email and click the activation link to complete your registration.
+        <% } else if (activationStatus === 'PENDING') { %>
+            <h1 class="status-title">Activate Your Account</h1>
+            <p class="status-message">
+                Welcome to <strong><%= appName %></strong>! To complete your registration and activate your account, please click the button below.
+            </p>
+
+            <div class="user-info">
+                <h3>Account Details</h3>
+                <p><strong>Email:</strong> <%= userEmail %></p>
+                <p><strong>Username:</strong> <%= userName %></p>
+            </div>
+
+            <a href="<%= activationUrl %>" class="action-button">Activate My Account</a>
+
+            <div class="resend-section">
+                <p class="resend-text">If the button doesn't work, copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: var(--text-muted); font-size: 14px; margin: 10px 0;">
+                    <%= activationUrl %>
                 </p>
 
-                <div class="user-info">
-                    <h3>Variables used:
-
-                        appName - Your app name
-                        userName - User's name
-                        resetLink - Password reset URL
-                        expiryTime - Link expiration time
-                        supportEmail - Support contact
-                        currentYear - Current yearNext Steps</h3>
-                    <p>1. Check your email inbox (and spam folder)</p>
-                    <p>2. Click the activation link in the email</p>
-                    <p>3. Return here to start using <%= appName %>
-                    </p>
-                </div>
-
-                <div class="resend-section">
-                    <p class="resend-text">Didn't receive the email?</p>
-                    <form action="<%= resendUrl %>" method="POST" style="display: inline;">
-                        <input type="hidden" name="email" value="<%= userEmail %>">
-                        <button type="submit" class="action-button">Resend Activation Email</button>
-                    </form>
-                </div>
-
-                <% } else { %>
+                <p class="resend-text" style="margin-top: 20px;">
+                    This activation link will expire in <%= linkExpiry || '24 hours' %>.
+                    Need help? <a href="mailto:<%= supportEmail %>" style="color: var(--anger-red);">Contact support</a>
+                </p>
+            </div>
+        <% }
+                else { %>
                     <h1 class="status-title">Activation Failed</h1>
                     <p class="status-message">
-                        <%= errorMessage
-                            || 'The activation link is invalid or has expired. Please try requesting a new activation email.'
+                        <%= errorMessage ? errorMessage
+                            :'The activation link is invalid or has expired. Please try requesting a new activation email.'
                             %>
+
+
                     </p>
 
                     <div class="user-info">

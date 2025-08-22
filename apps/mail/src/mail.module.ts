@@ -25,10 +25,7 @@ const getTemplatePath = () => {
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [
-        join(process.cwd(), 'apps/mail/.env.shared'),
-        join(process.cwd(), '.env.shared'),
-      ],
+      envFilePath: [join(process.cwd(), 'apps/mail/.env'), '.env.shared'],
       cache: true,
     }),
     MailerModule.forRootAsync({

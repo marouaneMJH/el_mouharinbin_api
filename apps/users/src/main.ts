@@ -2,6 +2,7 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { NestFactory } from '@nestjs/core';
 import { UsersModule } from './users.module';
 import { ValidationPipe } from '@nestjs/common';
+import { RpcCatchInterceptor } from 'libs/contract/interceptors/rpc-catch.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
@@ -22,6 +23,7 @@ async function bootstrap() {
   //   }),
   // );
 
+  app.useGlobalInterceptors(new RpcCatchInterceptor());
   await app.listen();
 }
 

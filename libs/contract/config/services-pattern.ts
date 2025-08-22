@@ -1,5 +1,4 @@
-type ServiceName = 'users' | 'auth';
-// Ajoute d'autres services ici si besoin
+export type ServiceName = 'users' | 'auth' | 'mail';
 
 export enum Functionalities {
   CREATE = 'create',
@@ -18,15 +17,16 @@ export enum Functionalities {
   GET_ROLES = 'get_roles',
   DEACTIVATE = 'deactivate',
   ACTIVATE = 'activate',
+  ACTIVATE_PENDING = 'activate_pending',
   SUSPEND = 'suspend',
   CHANGE_STATUS = 'change_status',
   UPDATE_LAST_LOGIN = 'update_last_login',
   GET_ACTIVE_USERS = 'get_active_users',
   GET_PENDING_USERS = 'get_pending_users',
   LOGIN = 'login',
+  WELCOME = 'welcome',
 }
 
-// Liste des fonctionnalités par service
 const serviceFunctionalities: Record<ServiceName, Functionalities[]> = {
   users: [
     Functionalities.CREATE,
@@ -45,36 +45,46 @@ const serviceFunctionalities: Record<ServiceName, Functionalities[]> = {
     Functionalities.GET_ROLES,
     Functionalities.DEACTIVATE,
     Functionalities.ACTIVATE,
+    Functionalities.ACTIVATE_PENDING,
     Functionalities.SUSPEND,
     Functionalities.CHANGE_STATUS,
     Functionalities.UPDATE_LAST_LOGIN,
     Functionalities.GET_ACTIVE_USERS,
     Functionalities.GET_PENDING_USERS,
   ],
-  auth: [Functionalities.LOGIN],
+  auth: [
+    Functionalities.LOGIN,
+    Functionalities.CREATE,
+    Functionalities.ACTIVATE,
+  ],
+  mail: [Functionalities.ACTIVATE, Functionalities.WELCOME],
 };
 
 // Pattern dynamic generator type-safe
-export const servicesPattern = new Proxy({}, {
-  get: (_, service: ServiceName) => {
-    const funcs = serviceFunctionalities[service];
-    if (!funcs) throw new Error(`Service ${service} inconnu`);
+export const servicesPattern = new Proxy(
+  {},
+  {
+    get: (_, service: ServiceName) => {
+      const funcs = serviceFunctionalities[service];
+      if (!funcs) throw new Error(`Service ${service} inconnu`);
 
-    return new Proxy({}, {
-      get: (_, func: Functionalities) => {
-        if (!funcs.includes(func)) {
-          throw new Error(`Fonctionnalité ${func} non définie pour ${service}`);
-        }
-        return `${service}.${func}`;
-      }
-    });
-  }
-}) as {
+      return new Proxy(
+        {},
+        {
+          get: (_, func: Functionalities) => {
+            if (!funcs.includes(func)) {
+              throw new Error(
+                `Fonctionnalité ${func} non définie pour ${service}`,
+              );
+            }
+            return `${service}.${func}`;
+          },
+        },
+      );
+    },
+  },
+) as {
   [K in ServiceName]: {
     [F in Functionalities]?: `${K}.${F}`;
   };
 };
-
-// // --- Exemple d'utilisation ---
-// const createUserPattern = Services.users.CREATE; // "users.create"
-// const loginPattern = Services.auth.LOGIN;        // "auth.login"

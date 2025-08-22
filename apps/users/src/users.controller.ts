@@ -5,7 +5,8 @@ import { CreateUserDto } from '../../../libs/contract/dtos/users/create-user.dto
 import { UpdateUserDto } from '../../../libs/contract/dtos/users/update-user.dto';
 import { servicesPattern } from 'libs/contract/config/services-pattern';
 import { UserQueryOptions } from 'libs/contract/interfaces/user.interface';
-import { UserStatus } from './../../../libs/contract/enums/user.enum';
+import { UserStatus } from 'libs/contract/enums/user.enum';
+
 @Controller()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -26,7 +27,7 @@ export class UsersController {
   }
 
   @MessagePattern(servicesPattern.users.find_by_email)
-  async findByEmail(@Payload() {email}:{ email: string }) {
+  async findByEmail(@Payload() { email }: { email: string }) {
     return this.usersService.findByEmail(email);
   }
 
@@ -90,8 +91,12 @@ export class UsersController {
   }
 
   @MessagePattern(servicesPattern.users.activate)
-  async activateUser(@Payload() userId: string) {
+  async activateUser(@Payload() { userId }: { userId: string }) {
     return this.usersService.activateUser(userId);
+  }
+  @MessagePattern(servicesPattern.users.activate_pending)
+  async activatePendingUser(@Payload() { userId }: { userId: string }) {
+    return this.usersService.activatePendingUser(userId);
   }
 
   @MessagePattern(servicesPattern.users.update_last_login)

@@ -5,6 +5,7 @@ import {
   BadRequestException,
   NotFoundException,
   ConflictException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from '../../../libs/contract/dtos/users/create-user.dto';
 import { UpdateUserDto } from '../../../libs/contract/dtos/users/update-user.dto';
@@ -12,12 +13,13 @@ import { Prisma, User } from '../../../libs/contract/prisma/generated/client';
 import * as bcrypt from 'bcrypt';
 import { UserQueryOptions } from 'libs/contract/interfaces/user.interface';
 import { UserStatus, UserStatusHelper } from 'libs/contract/enums/user.enum';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class UsersService {
   private readonly logger = new Logger(UsersService.name);
   private readonly BCRYPT_SALT_ROUND = this.getBcryptSaltRound();
-  private readonly USER_ROLE_ID = 'fc959621-5ea9-4e7a-85e0-25883ce9bd9b'
+  private readonly USER_ROLE_ID = 'fc959621-5ea9-4e7a-85e0-25883ce9bd9b';
 
   private readonly usersIncludes = {
     include: {
@@ -45,15 +47,17 @@ export class UsersService {
   }
 
   private validateEmail(email: string): void {
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.toLowerCase().trim())) {
       throw new BadRequestException('Invalid email format');
     }
   }
 
-  private validateId(id: string, fieldName = 'ID'): void {
+  private validateId(id: string, fieldName = 'id'): void {
+    this.logger.debug(id);
+    console.log(id);
     if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      this.logger.debug('not valide id');
       throw new BadRequestException(`Invalid ${fieldName} provided`);
     }
   }
@@ -126,12 +130,16 @@ export class UsersService {
         `User created successfully: ${user.email} with status: ${user.status}`,
       );
 
-      try{
+      try {
         await this.assignRole(user.id, this.USER_ROLE_ID);
-        this.logger.log('assign user role to user with id\'', user.id)
-      }catch{
-        this.logger.error('error to assign user role to user with id\'', user.id)
+        this.logger.log("assign user role to user with id'", user.id);
+      } catch {
+        this.logger.error(
+          "error to assign user role to user with id'",
+          user.id,
+        );
       }
+
       return user;
     } catch (error) {
       this.handlePrismaError(error, 'creating user');
@@ -179,7 +187,6 @@ export class UsersService {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-
     this.validateEmail(email.trim().toLowerCase());
 
     try {
@@ -521,7 +528,9 @@ export class UsersService {
   }
 
   async activateUser(userId: string): Promise<User> {
-    this.validateId(userId, 'user ID');
+    this.validateId(userId);
+
+    // Very the user need activation with
 
     try {
       const user = await this.prisma.user.update({
@@ -537,6 +546,18 @@ export class UsersService {
     }
   }
 
+  async activatePendingUser(userId: string): Promise<User> {
+    try {
+      const user = await this.findOne(userId);
+      if (user && user.status === UserStatus.PENDING) {
+        return this.activateUser(userId);
+      }
+      throw new RpcException(new ConflictException('The user already active'));
+    } catch (e) {
+      this.logger.error(e);
+      throw e;
+    }
+  }
   async suspendUser(userId: string): Promise<User> {
     this.validateId(userId, 'user ID');
 
