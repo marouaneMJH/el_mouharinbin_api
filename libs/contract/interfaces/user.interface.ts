@@ -7,8 +7,8 @@ export type UserQueryOptions = PrismaQueryOptions<
   Prisma.UserOrderByWithRelationInput
 >;
 
-export interface UserAuthI extends  User{
+export interface UserAuthI extends User {}
 
+export interface UserI extends Omit<UserAuthI, 'password'> {
+  password?: string;
 }
-
-export interface UserI  extends  Omit<UserAuthI, "password"> {password?: string}

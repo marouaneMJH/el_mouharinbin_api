@@ -25,6 +25,8 @@ export enum Functionalities {
   GET_PENDING_USERS = 'get_pending_users',
   LOGIN = 'login',
   WELCOME = 'welcome',
+  ME = 'me',
+  REFRESH = 'refresh',
 }
 
 const serviceFunctionalities: Record<ServiceName, Functionalities[]> = {
@@ -56,6 +58,8 @@ const serviceFunctionalities: Record<ServiceName, Functionalities[]> = {
     Functionalities.LOGIN,
     Functionalities.CREATE,
     Functionalities.ACTIVATE,
+    Functionalities.ME,
+    Functionalities.REFRESH,
   ],
   mail: [Functionalities.ACTIVATE, Functionalities.WELCOME],
 };

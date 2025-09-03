@@ -15,7 +15,7 @@ export const mockPrismaService = {
     create: jest.fn(),
     delete: jest.fn(),
     deleteMany: jest.fn(),
-    upsert: jest.fn()
+    upsert: jest.fn(),
   },
   $transaction: jest.fn(),
 };

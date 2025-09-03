@@ -1,61 +1,39 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { ExtractJwt, Strategy, StrategyOptionsWithRequest } from 'passport-jwt';
-import { Request } from 'express';
+import { Strategy } from 'passport-jwt';
+import { ExecutionContextHost } from '@nestjs/core/helpers/execution-context-host';
+import JwtPayloadI from '../../../../libs/contract/interfaces/jwt-paylaod.interface';
 import { ConfigService } from '@nestjs/config';
-import { UserStatus } from '../../../../libs/contract/enums/user.enum';
-import { UserI } from '../../../../libs/contract/interfaces/user.interface';
 
 @Injectable()
 export class RefreshTokenStrategy extends PassportStrategy(
   Strategy,
   'jwt-refresh',
 ) {
-  constructor(private configService: ConfigService) {
-    const refreshSecret = configService.get<string>('JWT_REFRESH_SECRET');
-
-    if (!refreshSecret) {
-      throw new Error(
-        'JWT_REFRESH_SECRET is not defined in environment variables',
-      );
-    }
-
-    const options: StrategyOptionsWithRequest = {
-      jwtFromRequest: ExtractJwt.fromExtractors([
-        // First check the request body
-        (req: Request) => {
-          if (req.body && req.body.refreshToken) {
-            return req.body.refreshToken as string;
-          }
-          // Then check cookies
-          if (req.cookies && req.cookies.refreshToken) {
-            return req.cookies.refreshToken as string;
-          }
-          return null;
-        },
-      ]),
-      secretOrKey: refreshSecret,
+  constructor(private readonly configService: ConfigService) {
+    super({
+      jwtFromRequest: (req: any) => {
+        // Exemple: client.send('refresh_token', { refreshToken: 'xxx' })
+        if (req?.refreshToken) {
+          return req.refreshToken;
+        }
+        return null;
+      },
+      secretOrKey: configService.get<string>('JWT_REFRESH_SECRET'),
       passReqToCallback: true,
-    };
-    super(options);
+    });
   }
 
-  validate(
-    refreshToken: string,
-    payload: { id: string; email: string; role: string; status: UserStatus },
-  ): Pick<UserI, "id" | "status" | "email" > | {refreshToken: string } {
-    // Check if user is active before processing the refresh token
-    if (payload.status !== UserStatus.ACTIVE) {
-      throw new Error('User account is not active. Cannot refresh tokens.');
+  async validate(payload: JwtPayloadI): Promise<JwtPayloadI> {
+    if (!payload) {
+      throw new UnauthorizedException('Invalid refresh token payload');
     }
 
     return {
       id: payload.id,
       email: payload.email,
-      // todo: add the role into user schema
-      // role: payload.role,
-      status: payload.status, // Use the status from the token
-      refreshToken,
-    } ;
+      role: payload.role,
+      status: payload.status,
+    };
   }
 }

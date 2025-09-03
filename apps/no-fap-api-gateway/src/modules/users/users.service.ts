@@ -102,7 +102,4 @@ export class UsersService {
   updateLastLogin(userId: string) {
     return this.users.send(this.usersPattern.update_last_login, userId);
   }
-
-
-
 }

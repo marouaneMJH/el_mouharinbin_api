@@ -6,10 +6,7 @@ import { UsersController } from './users.controller';
 import { join } from 'path';
 
 function loadConfigModule() {
-  const paths = [
-    join(process.cwd(), 'apps/users/.env'),
-    '.env.shared',
-  ];
+  const paths = [join(process.cwd(), 'apps/users/.env'), '.env.shared'];
 
   const config = ConfigModule.forRoot({
     isGlobal: true,

@@ -5,7 +5,6 @@ import { PrismaService } from '../../prisma/src/prisma.service';
 
 @Injectable()
 export class RoleService {
-
   private readonly logger = new Logger(RoleService.name);
 
   private readonly usersIncludes = {
@@ -23,18 +22,17 @@ export class RoleService {
   async create(createRoleDto: CreateRoleDto) {
     return this.prisma.role.create({
       data: {
-        ...createRoleDto
-      }
-    }
-    );
+        ...createRoleDto,
+      },
+    });
   }
 
   findAll() {
-    return "" ;
+    return '';
   }
 
   findOne(id: number) {
-    return "";
+    return '';
   }
 
   update(id: number, updateRoleDto: UpdateRoleDto) {
@@ -42,6 +40,6 @@ export class RoleService {
   }
 
   remove(id: number) {
-    return ""
+    return '';
   }
 }

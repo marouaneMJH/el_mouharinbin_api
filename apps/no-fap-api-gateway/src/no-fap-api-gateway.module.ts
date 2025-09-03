@@ -14,7 +14,7 @@ console.log(__dirname);
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: ['.env.shared',join(__dirname, '.env') ],
+      envFilePath: ['.env.shared', join(__dirname, '.env')],
       // load: [configuration],
       isGlobal: true,
     }),

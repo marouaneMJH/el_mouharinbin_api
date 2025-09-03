@@ -16,7 +16,7 @@ import {
   mockUser,
   mockUserWithRoles,
 } from './__tests__/fixtures/user.fixtures';
-import {mockPrismaService} from './__tests__/mocks/prisma.service.mock';
+import { mockPrismaService } from './__tests__/mocks/prisma.service.mock';
 import { Prisma } from '../../../libs/contract/prisma/generated/client';
 import * as bcrypt from 'bcrypt';
 
@@ -29,8 +29,6 @@ describe('UsersService', () => {
   //   error: jest.fn(),
   //   warn: jest.fn(),
   // };
-
-
 
   const resetMocks = () => {
     Object.values(mockPrismaService.user).forEach((mockFn) =>
