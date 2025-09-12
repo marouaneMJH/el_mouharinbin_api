@@ -1,4 +1,4 @@
-export type ServiceName = 'users' | 'auth' | 'mail';
+export type ServiceName = 'users' | 'auth' | 'mail' | 'chat';
 
 export enum Functionalities {
   CREATE = 'create',
@@ -62,6 +62,7 @@ const serviceFunctionalities: Record<ServiceName, Functionalities[]> = {
     Functionalities.REFRESH,
   ],
   mail: [Functionalities.ACTIVATE, Functionalities.WELCOME],
+  chat: [],
 };
 
 // Pattern dynamic generator type-safe

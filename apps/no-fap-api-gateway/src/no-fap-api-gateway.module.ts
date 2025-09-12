@@ -8,6 +8,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { JwtStrategy } from '../../../libs/contract/strategies/jwt.strategy';
 import { AppConfigModule } from '../../../libs/contract/config/config.module';
+import { ChatModule } from './modules/chat/chat.module';
 import configuration from '../../../libs/contract/config/configuration';
 
 console.log(__dirname);
@@ -21,6 +22,7 @@ console.log(__dirname);
     MailModule,
     UsersModule,
     AuthModule,
+    ChatModule,
   ],
   controllers: [NoFapApiGatewayController],
   providers: [NoFapApiGatewayService, JwtStrategy],

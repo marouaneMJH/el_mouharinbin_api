@@ -1,8 +1,5 @@
-import { UserStatus } from '../../../../../libs/contract/enums/user.enum';
-import {
-  User,
-  Role,
-} from '../../../../../libs/contract/prisma/generated/client';
+import { UserStatus } from 'libs/contract/enums/user.enum';
+import { User, Role } from 'libs/contract/prisma/generated/client';
 
 // Simple mock role
 export const mockRole: Role = {

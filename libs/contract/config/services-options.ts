@@ -1,6 +1,7 @@
 import { ClientsModuleOptions, Transport } from '@nestjs/microservices';
+import { ServiceName } from './services-pattern';
 
-const servicesOptions: Record<string, ClientsModuleOptions> = {
+const servicesOptions: Record<ServiceName, ClientsModuleOptions> = {
   mail: [
     {
       name: 'MAIL_SERVICE',
@@ -10,7 +11,6 @@ const servicesOptions: Record<string, ClientsModuleOptions> = {
       },
     },
   ],
-
   users: [
     {
       name: 'USERS_SERVICE',
@@ -38,6 +38,19 @@ const servicesOptions: Record<string, ClientsModuleOptions> = {
       // );
       options: {
         port: 3004,
+      },
+    },
+  ],
+  chat: [
+    {
+      name: 'CHAT_SERVICE',
+      transport: Transport.RMQ,
+      options: {
+        urls: ['amqp://localhost:5672'],
+        queue: 'message_queue',
+        queueOptions: {
+          durable: false,
+        },
       },
     },
   ],

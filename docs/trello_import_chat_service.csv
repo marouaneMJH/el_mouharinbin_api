@@ -1,0 +1,210 @@
+List Name,Card Name,Card Description,Due Date,Labels,Members,Checklist Items
+"Sprint 0 - Infrastructure","US-001: Configuration environnement développement","**En tant que** développeur
+**Je veux** avoir un environnement de développement fonctionnel
+**Afin de** développer et tester le service de chat
+
+**Estimation:** 3 story points
+**Priorité:** Critique
+
+**Critères d'acceptation:**
+- Docker-compose avec PostgreSQL, RabbitMQ, Redis fonctionnel
+- Base de données avec schéma initial créé  
+- Services NestJS (Gateway + Chat Service) initialisés
+- Tests de connectivité entre services réussis
+- Documentation technique de setup disponible
+
+**Definition of Done:** Les services démarrent sans erreur et les tests de connectivité passent","","Infrastructure,Critical","","Docker-compose PostgreSQL RabbitMQ Redis,Base de données schéma initial,Services NestJS Gateway Chat Service,Tests connectivité services,Documentation setup"
+"Sprint 1 - Foundation","US-002: Authentification JWT","**En tant qu'** utilisateur authentifié dans l'application principale
+**Je veux** pouvoir me connecter au service de chat avec mon token JWT
+**Afin de** accéder aux fonctionnalités de chat de façon sécurisée
+
+**Estimation:** 5 story points
+**Priorité:** Critique
+
+**Critères d'acceptation:**
+- Middleware JWT valide les tokens dans le Gateway
+- WebSocket rejette les connexions sans token valide
+- User ID et username extraits du token JWT
+- Session utilisateur créée en base à la connexion
+- Déconnexion automatique si token expire
+
+**Tests d'acceptation:**
+- Connexion WebSocket avec token valide → Success
+- Connexion WebSocket sans token → Rejected
+- Connexion avec token expiré → Rejected","","Authentication,Critical","","Middleware JWT Gateway,WebSocket validation token,User ID username extraction,Session utilisateur base,Déconnexion token expiré,Test connexion valide,Test sans token,Test token expiré"
+"Sprint 1 - Foundation","US-003: Lister communautés disponibles","**En tant qu'** utilisateur connecté
+**Je veux** voir la liste de toutes les communautés disponibles
+**Afin de** choisir lesquelles rejoindre
+
+**Estimation:** 3 story points
+**Priorité:** Haute
+
+**Critères d'acceptation:**
+- API GET /communities retourne la liste des communautés publiques
+- Chaque communauté affiche: nom, description, nombre de membres
+- Indication si l'utilisateur est déjà membre ou non
+- Pagination si plus de 50 communautés
+- Temps de réponse < 200ms","","Community,High","","API GET /communities,Affichage nom description membres,Indication membre ou non,Pagination 50+ communautés,Performance < 200ms"
+"Sprint 1 - Foundation","US-004: Rejoindre une communauté","**En tant qu'** utilisateur connecté
+**Je veux** pouvoir rejoindre une communauté publique
+**Afin de** participer aux discussions
+
+**Estimation:** 5 story points
+**Priorité:** Haute
+
+**Critères d'acceptation:**
+- Bouton ""Rejoindre"" sur les communautés non-membres
+- Ajout automatique dans community_members avec role 'member'
+- Notification temps réel aux autres membres connectés
+- Redirection vers la vue de la communauté après join
+- Gestion d'erreur si communauté pleine
+
+**Tests d'acceptation:**
+- Rejoindre communauté existante → Success + notification autres membres
+- Tenter rejoindre communauté déjà membre → Error explicite
+- Rejoindre communauté inexistante → Error 404","","Community,High","","Bouton Rejoindre,Ajout community_members role member,Notification temps réel membres,Redirection vue communauté,Gestion erreur communauté pleine,Test rejoindre existante,Test déjà membre,Test communauté inexistante"
+"Sprint 1 - Foundation","US-005: Créer nouvelle communauté","**En tant qu'** utilisateur connecté
+**Je veux** pouvoir créer une nouvelle communauté
+**Afin de** démarrer des discussions sur des sujets spécifiques
+
+**Estimation:** 3 story points
+**Priorité:** Moyenne
+
+**Critères d'acceptation:**
+- Formulaire: nom (obligatoire), description (optionnelle)
+- Nom de communauté unique (validation)
+- Créateur devient automatiquement 'owner'
+- Communauté apparaît immédiatement dans la liste
+- Limite de 3 communautés créées par utilisateur (MVP)","","Community,Medium","","Formulaire nom description,Validation nom unique,Créateur devient owner,Apparition immédiate liste,Limite 3 communautés par utilisateur"
+"Sprint 2 - Core Chat","US-007: Envoyer message communauté","**En tant que** membre d'une communauté
+**Je veux** pouvoir envoyer un message texte
+**Afin de** communiquer avec les autres membres
+
+**Estimation:** 8 story points
+**Priorité:** Critique
+
+**Critères d'acceptation:**
+- Champ de saisie de message (max 1000 caractères)
+- Bouton d'envoi ou touche Entrée
+- Message apparaît immédiatement pour l'expéditeur
+- Message sauvegardé en base avec timestamp
+- Validation: message non-vide, utilisateur est membre
+- Gestion d'erreur réseau avec retry","","Message,Critical","","Champ saisie max 1000 caractères,Bouton envoi touche Entrée,Affichage immédiat expéditeur,Sauvegarde base timestamp,Validation message non-vide membre,Gestion erreur réseau retry"
+"Sprint 2 - Core Chat","US-008: Recevoir messages temps réel","**En tant que** membre connecté d'une communauté
+**Je veux** recevoir instantanément les nouveaux messages
+**Afin de** suivre les conversations en temps réel
+
+**Estimation:** 8 story points
+**Priorité:** Critique
+
+**Critères d'acceptation:**
+- Messages reçus via WebSocket instantanément
+- Affichage: username, timestamp, contenu du message
+- Messages ordonnés chronologiquement
+- Scroll automatique vers le dernier message
+- Pas de duplication de messages
+- Indication ""Utilisateur est en train d'écrire..."" (optionnel MVP)","","Message,Critical,WebSocket","","Messages WebSocket instantanés,Affichage username timestamp contenu,Messages ordonnés chronologiquement,Scroll automatique dernier message,Pas duplication messages,Indication en train écrire optionnel"
+"Sprint 2 - Core Chat","US-009: Historique messages","**En tant que** membre d'une communauté
+**Je veux** voir l'historique des messages précédents
+**Afin de** suivre le contexte des conversations
+
+**Estimation:** 5 story points
+**Priorité:** Haute
+
+**Critères d'acceptation:**
+- Chargement des 50 derniers messages à l'ouverture
+- Scroll vers le haut charge les messages plus anciens (pagination)
+- Messages supprimés n'apparaissent pas dans l'historique
+- Indicateur de chargement pendant la récupération
+- Cache local des messages pour performance","","Message,High","","Chargement 50 derniers messages,Scroll haut pagination messages anciens,Messages supprimés invisibles,Indicateur chargement,Cache local performance"
+"Sprint 2 - Core Chat","US-011: Statut en ligne/hors ligne","**En tant qu'** utilisateur
+**Je veux** voir quels membres sont actuellement en ligne
+**Afin de** savoir qui peut répondre immédiatement
+
+**Estimation:** 5 story points
+**Priorité:** Moyenne
+
+**Critères d'acceptation:**
+- Indicateur visuel (point vert) pour membres en ligne
+- Statut mis à jour en temps réel à la connexion/déconnexion
+- Timeout automatique après inactivité (5 minutes)
+- Compteur ""X membres en ligne"" par communauté","","Presence,Medium","","Indicateur visuel point vert,Statut temps réel connexion/déconnexion,Timeout inactivité 5 minutes,Compteur X membres en ligne"
+"Sprint 3 - Polish","US-006: Voir membres communauté","**En tant que** membre d'une communauté
+**Je veux** voir la liste des autres membres
+**Afin de** savoir qui participe aux discussions
+
+**Estimation:** 3 story points
+**Priorité:** Moyenne
+
+**Critères d'acceptation:**
+- Liste des membres avec username et statut en ligne
+- Indication du rôle (member, moderator, admin, owner)
+- Distinction visuelle entre membres en ligne/hors ligne
+- Nombre total de membres affiché
+- Pas d'information privée exposée (email, etc.)","","Community,Medium","","Liste membres username statut,Indication rôle member moderator admin owner,Distinction visuelle en ligne/hors ligne,Nombre total membres,Pas information privée"
+"Sprint 3 - Polish","US-012: Notifications nouveaux messages","**En tant qu'** utilisateur connecté
+**Je veux** être notifié des nouveaux messages
+**Afin de** ne pas rater d'importantes conversations
+
+**Estimation:** 5 story points
+**Priorité:** Moyenne
+
+**Critères d'acceptation:**
+- Badge numérique sur l'icône de communauté (messages non lus)
+- Notification système (si autorisée par l'utilisateur)
+- Son de notification (paramétrable)
+- Marquage automatique ""lu"" quand communauté active
+- Pas de notification pour ses propres messages","","Notification,Medium","","Badge numérique icône communauté,Notification système autorisée,Son notification paramétrable,Marquage automatique lu,Pas notification propres messages"
+"Sprint 3 - Polish","US-013: Interface responsive intuitive","**En tant qu'** utilisateur sur mobile ou desktop
+**Je veux** une interface adaptée à mon dispositif
+**Afin d'** avoir une expérience utilisateur optimale
+
+**Estimation:** 8 story points
+**Priorité:** Haute
+
+**Critères d'acceptation:**
+- Interface responsive (mobile-first)
+- Liste des communautés dans sidebar/drawer
+- Zone de chat principal avec historique
+- Champ de saisie toujours visible en bas
+- Indicateurs de chargement appropriés","","UI/UX,High","","Interface responsive mobile-first,Liste communautés sidebar/drawer,Zone chat principal historique,Champ saisie visible bas,Indicateurs chargement appropriés"
+"Sprint 3 - Polish","US-014: Gestion erreurs reconnexion","**En tant qu'** utilisateur
+**Je veux** que l'application gère les problèmes de connexion
+**Afin de** ne pas perdre mes messages ou ma session
+
+**Estimation:** 5 story points
+**Priorité:** Haute
+
+**Critères d'acceptation:**
+- Reconnexion automatique WebSocket en cas de déconnexion
+- Messages en file d'attente si connexion perdue
+- Indicateur visuel de l'état de connexion
+- Retry automatique avec backoff exponentiel
+- Message d'erreur explicite si problème persistant","","Error Handling,High,WebSocket","","Reconnexion automatique WebSocket,Messages file attente connexion perdue,Indicateur visuel état connexion,Retry automatique backoff exponentiel,Message erreur explicite"
+"Sprint 3 - Polish","US-015: Tests automatisés monitoring","**En tant que** développeur
+**Je veux** avoir une couverture de tests appropriée
+**Afin de** garantir la stabilité du service
+
+**Estimation:** 13 story points
+**Priorité:** Haute
+
+**Critères d'acceptation:**
+- Tests unitaires pour la logique métier (>80% couverture)
+- Tests d'intégration pour les APIs
+- Tests E2E pour les flux critiques
+- Health checks pour tous les services
+- Logs structurés pour debugging","","Testing,High,Quality","","Tests unitaires >80% couverture,Tests intégration APIs,Tests E2E flux critiques,Health checks tous services,Logs structurés debugging"
+"Optionnel MVP","US-010: Éditer/Supprimer messages","**En tant qu'** auteur d'un message
+**Je veux** pouvoir éditer ou supprimer mon message
+**Afin de** corriger des erreurs ou retirer du contenu inapproprié
+
+**Estimation:** 5 story points
+**Priorité:** Basse
+
+**Critères d'acceptation:**
+- Menu contextuel sur ses propres messages (3 points)
+- Option ""Éditer"" disponible pendant 10 minutes après envoi
+- Option ""Supprimer"" toujours disponible
+- Suppression = soft delete (deleted_at)
+- Édition montre ""Message édité"" avec horodatage
+- Notification temps réel de l'édition/suppression","","Message,Low,Optional","","Menu contextuel propres messages,Option Éditer 10 minutes,Option Supprimer toujours,Suppression soft delete,Édition Message édité horodatage,Notification temps réel édition/suppression"
