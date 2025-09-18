@@ -1,93 +1,78 @@
-# Documentation du Makefile – Déploiement avec Docker
+# NoFap API – Multi-Service NestJS Application
 
-Ce projet est une application NestJS organisée selon une architecture microservices. Le processus de développement et d'exécution est automatisé à l'aide d'un fichier Makefile afin de faciliter l'utilisation de Docker et Docker Compose.
+Welcome to the NoFap API, a modern, scalable backend built with NestJS and organized as a suite of microservices. This project is designed for rapid development, robust security, and seamless integration, making it perfect for teams and production environments.
 
-## Prérequis
+## 🚀 Key Features
 
-Avant d'exécuter les commandes décrites ci-dessous, vous devez avoir installé :
+- **Microservices Architecture**: Modular services for authentication, chat, mail, users, and API gateway.
+- **Authentication & Authorization**: Secure JWT-based auth, role management, and guards.
+- **Real-Time Chat**: Scalable chat service with support for multiple channels and users.
+- **Email Service**: Integrated mailer with templates, attachments, and Notion integration.
+- **User Management**: CRUD operations, roles, and status tracking for users.
+- **API Gateway**: Centralized routing, request validation, and service orchestration.
+- **Dockerized Deployment**: Easy setup and scaling with Docker & Docker Compose.
+- **Automated Testing**: E2E and unit tests for reliability and CI/CD.
+- **Extensible Contracts**: Shared DTOs, enums, and interfaces for type-safe communication.
+- **Prisma ORM**: Modern database access and migrations.
+- **Configurable & Secure**: Environment-based configs, interceptors, and filters.
 
-- Docker : https://www.docker.com/
-- Docker Compose (inclus dans Docker Desktop)
-- GNU Make (souvent préinstallé sur Linux/macOS, sinon installable via `sudo apt install make`)
+## 🏗️ Project Structure
 
-## Contenu du Makefile
-
-### 1. `make build`
-
-Cette commande construit l’image Docker à partir du `Dockerfile`. Elle prépare l’environnement de production ou de développement dans un conteneur isolé.
-
-**Equivalent :**
-
-```bash
-docker compose build
+```
+apps/
+  auth/         # Authentication microservice
+  chat/         # Real-time chat microservice
+  mail/         # Email service microservice
+  users/        # User management microservice
+  no-fap-api-gateway/ # API gateway
+libs/contract/  # Shared DTOs, enums, interfaces, strategies
 ```
 
-### 2. `make up`
+## 🛠️ Tech Stack
 
-Lance l’application avec Docker Compose en mode détaché (en arrière-plan). Cela démarre tous les services définis dans `docker-compose.yml`.
+- **NestJS** (TypeScript)
+- **Prisma** (ORM)
+- **Docker & Docker Compose**
+- **Jest** (Testing)
+- **Makefile** (Automation)
 
-**Equivalent :**
+## ⚡ Getting Started
 
-```bash
-docker compose up -d
-```
+1. **Clone the repo**
+   ```bash
+   git clone https://github.com/your-org/no_fap_api.git
+   cd no_fap_api
+   ```
+2. **Build and start services**
+   ```bash
+   make build
+   make up
+   ```
+3. **View logs**
+   ```bash
+   make logs
+   ```
+4. **Run tests**
+   ```bash
+   make test
+   ```
 
-### 3. `make logs`
+## 📦 Deployment
 
-Affiche les logs de tous les services en cours d’exécution via Docker Compose.
+- All services are containerized for easy deployment.
+- Use `make` commands for building, starting, stopping, and accessing containers.
+- See [Documentation du Makefile](#documentation-du-makefile--d%C3%A9ploiement-avec-docker) for details.
 
-**Equivalent :**
+## 🤝 Contributing
 
-```bash
-docker compose logs -f
-```
+Pull requests and issues are welcome! Please follow the code style and add tests for new features.
 
-### 4. `make down`
+## 📚 Documentation
 
-Arrête les conteneurs et supprime les réseaux associés créés par Docker Compose.
+- See the `/docs` folder and service-specific README files for more details.
+- API contracts and DTOs are in `libs/contract/`.
 
-**Equivalent :**
+---
 
-```bash
-docker compose down
-```
+Made with ❤️ using NestJS, Docker, and TypeScript.
 
-### 5. `make restart`
-
-Redémarre les conteneurs (équivalent de `down` puis `up`).
-
-**Commande composée :**
-
-```bash
-make down && make up
-```
-
-### 6. `make exec service=nom_du_service`
-
-Permet d’entrer dans le conteneur d’un service spécifique défini dans `docker-compose.yml`.
-
-**Exemple :**
-
-```bash
-make exec service=api-gateway
-```
-
-**Equivalent :**
-
-```bash
-docker exec -it nom_du_service sh
-```
-
-## Exemple d’utilisation
-
-```bash
-make build        # Construit les images
-make up           # Lance les services
-make logs         # Affiche les logs
-make exec service=my-service # Accède au conteneur d'un service
-make down         # Stoppe et nettoie les services
-```
-
-## Conclusion
-
-L’objectif du Makefile est de simplifier et standardiser les commandes complexes ou répétitives liées au développement avec Docker. Cela permet une meilleure productivité et une cohérence entre les différents environnements de l’équipe.
