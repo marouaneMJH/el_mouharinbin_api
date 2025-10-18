@@ -34,7 +34,7 @@ model CommunityMember {
   communityId String    @map("community_id") @db.Uuid
   userId      String    @map("user_id") @db.Uuid
   joinedAt    DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
-  role        Role      @default(member)
+  role        MemberRole      @default(member)
   isBanned    Boolean   @default(false) @map("is_banned")
   bannedUntil DateTime? @map("banned_until") @db.Timestamptz(6)
 
@@ -91,7 +91,7 @@ model UserSession {
 }
 
 // Enums
-enum Role {
+enum MemberRole {
   member
   moderator
   admin
