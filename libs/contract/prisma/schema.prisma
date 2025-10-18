@@ -8,7 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// On inclut tous les fichiers secondaires
-// (disponible depuis Prisma 5.4+)
-import "apps/users/prisma/user.prisma"
-import "apps/chat/prisma/chat.prisma"
+
+import "./../../../apps/users/prisma/user.prisma"
+import "./../../../apps/chat/prisma/chat.prisma"

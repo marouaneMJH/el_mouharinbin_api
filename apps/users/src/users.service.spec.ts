@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
-import { PrismaService } from '../prisma/src/prisma.service';
+import { PrismaService } from '../../../libs/contract/services/prisma.service';
 import {
   BadRequestException,
   ConflictException,
