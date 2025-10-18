@@ -1,5 +1,5 @@
-import { Prisma, User } from '../prisma/generated/client';
 import { PrismaQueryOptions } from './pagination.interface';
+import { User, Prisma } from '../prisma/generated/client';
 
 export type UserQueryOptions = PrismaQueryOptions<
   Prisma.UserWhereInput,

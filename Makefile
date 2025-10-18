@@ -30,6 +30,14 @@ rebuild:
 	$(DC) build --no-cache
 	$(DC) up -d
 
+
+
+rabbit-view:
+	@firefox-developer --safe-mode "http://localhost:15672/" >/dev/null 2>&1 &
+
+
+
+
 # === DB CONNECTION (requires psql inside container) ===
 db-connect:
 	@export $$(grep -v '^#' $(ENV_FILE) | xargs) && \
