@@ -14,7 +14,7 @@
     "start:mail": "nest start mail",
     "start:dev": "nest start --watch",
     "start:auth:dev": "nest start auth --watch",
-    "start:chat:dev": "nest start chat --watch",
+    "start:chat:dev": "nest start chat --env-file apps/chat/.env",
     "start:users:dev": "nest start users --watch",
     "start:mail:dev": "nest start mail --watch",
     "start:users:debug": "nest start users --debug --watch",
@@ -61,6 +61,7 @@
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
     "users": "^2.0.0"
   },

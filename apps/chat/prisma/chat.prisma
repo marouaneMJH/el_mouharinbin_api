@@ -76,7 +76,7 @@ model UserSession {
   id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   userId       String   @map("user_id") @db.Uuid
   username     String   @db.VarChar(100)
-  socketId     String   @map("socket_id") @db.VarChar(100)
+  socketId     String   @map(fix: correct typo in gitleaks hook ID in pre-commit configuration"socket_id") @db.VarChar(100)
   communityId  String?  @map("community_id") @db.Uuid
   connectedAt  DateTime @default(now()) @map("connected_at") @db.Timestamptz(6)
   lastActivity DateTime @default(now()) @map("last_activity") @db.Timestamptz(6)
