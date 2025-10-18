@@ -1,0 +1,119 @@
+services:
+  db:
+    image: postgres
+    restart: always
+    shm_size: 128mb
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"   # RabbitMQ broker port
+      - "15672:15672" # RabbitMQ management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-rabbit}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-rabbit_password}
+
+
+
+
+
+#version: '3.8'
+#
+#services:
+#  # PostgreSQL Database
+#  db:
+#    image: postgres:15-alpine
+#    restart: always
+#    shm_size: 128mb
+#    ports:
+#      - '${POSTGRES_PORT:-5432}:5432'
+#    environment:
+#      POSTGRES_USER: ${POSTGRES_USER}
+#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+#      POSTGRES_DB: ${POSTGRES_DB}
+#    volumes:
+#      - postgres_data:/var/lib/postgresql/data
+#    healthcheck:
+#      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#
+#  # Main API Gateway (assuming this is your main app)
+#  no-fap-api:
+#    build:
+#      context: .
+#      dockerfile: apps/no_fap_api/Dockerfile
+#    environment:
+#      - NODE_ENV=production
+#      - DATABASE_URL=${DATABASE_URL}
+#    env_file:
+#      - .env.shared
+#      - apps/no_fap_api/.env
+#    ports:
+#      - '3000:3000'
+#    depends_on:
+#      db:
+#        condition: service_healthy
+#    restart: unless-stopped
+#
+#  # Users Microservice
+#  users:
+#    build:
+#      context: .
+#      dockerfile: apps/users/Dockerfile
+#    environment:
+#      - NODE_ENV=production
+#      - DATABASE_URL=${DATABASE_URL}
+#    env_file:
+#      - .env.shared
+#      - apps/users/.env
+#    ports:
+#      - '3001:3001'
+#    depends_on:
+#      db:
+#        condition: service_healthy
+#    restart: unless-stopped
+#
+#  # Mail Microservice
+#  mail:
+#    build:
+#      context: .
+#      dockerfile: apps/mail/Dockerfile
+#    environment:
+#      - NODE_ENV=production
+#    env_file:
+#      - .env.shared
+#      - apps/mail/.env
+#    ports:
+#      - '3002:3002'
+#    restart: unless-stopped
+#
+#  # Auth Microservice
+#  auth:
+#    build:
+#      context: .
+#      dockerfile: apps/auth/Dockerfile
+#    environment:
+#      - NODE_ENV=production
+#      - DATABASE_URL=${DATABASE_URL}
+#    env_file:
+#      - .env.shared
+#      - apps/auth/.env
+#    ports:
+#      - '3003:3003'
+#    depends_on:
+#      db:
+#        condition: service_healthy
+#    restart: unless-stopped
+#
+#volumes:
+#  postgres_data:
+#

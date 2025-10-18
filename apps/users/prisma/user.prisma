@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../../libs/contract/prisma/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String     @id @default(uuid())
+  email       String     @unique
+  password    String
+  name        String?
+  status      UserStatus @default(PENDING)
+  createdAt   DateTime   @default(now())
+  lastLoginAt DateTime?
+  updateDate  DateTime   @updatedAt
+  roles       UserRole[]
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  isActive    Boolean    @default(true)
+  description String?
+  users       UserRole[]
+}
+
+model UserRole {
+  id           String   @id @default(uuid())
+  userID       String
+  roleID       String
+  affectedDate DateTime @default(now())
+  role         Role     @relation(fields: [roleID], references: [id])
+  user         User     @relation(fields: [userID], references: [id])
+
+  @@unique([userID, roleID])
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+  DELETED
+}
