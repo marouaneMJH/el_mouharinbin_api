@@ -14,7 +14,7 @@
     "start:mail": "nest start mail",
     "start:dev": "nest start --watch",
     "start:auth:dev": "nest start auth --watch",
-    "start:chat:dev": "nest start chat --env-file apps/chat/.env",
+    "start:chat:dev": "nest start chat --watch",
     "start:users:dev": "nest start users --watch",
     "start:mail:dev": "nest start mail --watch",
     "start:users:debug": "nest start users --debug --watch",

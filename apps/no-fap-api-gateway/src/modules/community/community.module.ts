@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common';
-import { ChatService } from './chat.service';
-import { ChatGateway } from './chat.gateway';
 import { ClientsModule } from '@nestjs/microservices';
 import { JwtModule } from '@nestjs/jwt';
+import { CommunityController } from './community.controller';
 import servicesOptions from '../../../../../libs/contract/config/services-options';
 
 @Module({
@@ -13,6 +12,6 @@ import servicesOptions from '../../../../../libs/contract/config/services-option
       signOptions: { expiresIn: '24h' },
     }),
   ],
-  providers: [ChatGateway, ChatService],
+  controllers: [CommunityController],
 })
-export class ChatModule {}
+export class CommunityModule {}

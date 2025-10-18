@@ -4,14 +4,14 @@ import { Transport } from '@nestjs/microservices';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
+  // Debug des variables d'environnement
+
   // Configuration RabbitMQ pour le microservice
   const rabbitmqOptions = {
     transport: Transport.RMQ,
     options: {
-      urls: [
-        `amqp://${process.env.RABBITMQ_USER || 'guest'}:${process.env.RABBITMQ_PASSWORD || 'guest'}@${process.env.RABBITMQ_HOST || 'localhost'}:${process.env.RABBITMQ_PORT || '5672'}`,
-      ],
-      queue: process.env.CHAT_QUEUE_NAME || 'chat_queue',
+      urls: [`amqp://rabbit:rabbit_password@localhost:5672`],
+      queue: 'chat_queue',
       queueOptions: {
         durable: true,
       },
