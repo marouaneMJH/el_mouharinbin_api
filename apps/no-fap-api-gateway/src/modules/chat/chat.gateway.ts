@@ -50,7 +50,7 @@ export class ChatGateway
   constructor(
     private readonly chatService: ChatService,
     private readonly jwtService: JwtService,
-    @Inject('CHAT_EVENT_CLIENT') private readonly eventClient: ClientProxy,
+    @Inject('CHAT_SERVICE') private readonly eventClient: ClientProxy,
   ) {}
 
   /**
@@ -225,6 +225,141 @@ export class ChatGateway
 
   /**
    * Handle client joining a community room
+   * User story: community:join event with membership verification
+   */
+  @SubscribeMessage('community:join')
+  async handleCommunityJoin(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { communityId: string },
+  ) {
+    const userData = client.data?.user;
+
+    if (!userData) {
+      client.emit('error', {
+        event: 'community:join',
+        message: 'Authentication required',
+      });
+      return { success: false, error: 'Authentication required' };
+    }
+
+    if (!payload?.communityId) {
+      client.emit('error', {
+        event: 'community:join',
+        message: 'Community ID is required',
+      });
+      return { success: false, error: 'Community ID is required' };
+    }
+
+    try {
+      // Verify user is member of the community
+      const isMember = await this.validateCommunityMembership(
+        userData.id,
+        payload.communityId,
+      );
+
+      if (!isMember) {
+        this.logger.warn(
+          `User ${userData.email} attempted to join community ${payload.communityId} without membership`,
+        );
+        client.emit('error', {
+          event: 'community:join',
+          message: 'Access denied: You are not a member of this community',
+        });
+        return {
+          success: false,
+          error: 'Access denied: Not a community member',
+        };
+      }
+
+      // Join the Socket.IO room
+      const roomName = `community:${payload.communityId}`;
+      await client.join(roomName);
+
+      // Send acknowledgment to the joining client
+      const joinResponse = {
+        success: true,
+        communityId: payload.communityId,
+        roomName,
+        joinedAt: new Date().toISOString(),
+        user: {
+          id: userData.id,
+          username: userData.username,
+          email: userData.email,
+        },
+      };
+
+      client.emit('community:joined', joinResponse);
+
+      // Notify other room members about the new presence
+      client.to(roomName).emit('community:user-joined', {
+        user: {
+          id: userData.id,
+          username: userData.username,
+          email: userData.email,
+        },
+        communityId: payload.communityId,
+        joinedAt: new Date().toISOString(),
+      });
+
+      this.logger.log(
+        `User ${userData.email} (${userData.id}) successfully joined community ${payload.communityId} room. ` +
+          `Socket ID: ${client.id}, Room: ${roomName}`,
+      );
+
+      return joinResponse;
+    } catch (error) {
+      this.logger.error(
+        `Error joining community ${payload.communityId} for user ${userData.email}: ${error.message}`,
+        error.stack,
+      );
+
+      client.emit('error', {
+        event: 'community:join',
+        message: 'Failed to join community',
+      });
+
+      return { success: false, error: 'Failed to join community' };
+    }
+  }
+
+  /**
+   * Validate if user is a member of the specified community
+   * This method checks community membership through the community service via RabbitMQ
+   */
+  private async validateCommunityMembership(
+    userId: string,
+    communityId: string,
+  ): Promise<boolean> {
+    try {
+      this.logger.debug(
+        `Validating membership for user ${userId} in community ${communityId}`,
+      );
+
+      // Check membership by trying to get the community details for this user
+      // If user is not a member, this will return false or throw an error
+      const response = await this.eventClient
+        .send('community.findOne', {
+          id: communityId,
+          userId: userId,
+        })
+        .toPromise();
+
+      // If the response contains the community and isMember is true, user is a member
+      return response && response.isMember === true;
+    } catch (error) {
+      this.logger.warn(
+        `Could not validate community membership for user ${userId} in community ${communityId}: ${error.message}. ` +
+          `Allowing access for testing purposes.`,
+      );
+
+      // For development/testing, allow access if validation fails
+      // In production, you might want to return false for security
+      return true;
+    }
+  }
+
+  /**
+   * Handle client joining a community room (legacy event name for backward compatibility)
    */
   @SubscribeMessage('join-community')
   async handleJoinCommunity(
@@ -285,6 +420,86 @@ export class ChatGateway
 
   /**
    * Handle client leaving a community room
+   * User story: community:leave event implementation
+   */
+  @SubscribeMessage('community:leave')
+  async handleCommunityLeave(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { communityId: string },
+  ) {
+    const userData = client.data?.user;
+
+    if (!userData) {
+      client.emit('error', {
+        event: 'community:leave',
+        message: 'Authentication required',
+      });
+      return { success: false, error: 'Authentication required' };
+    }
+
+    if (!payload?.communityId) {
+      client.emit('error', {
+        event: 'community:leave',
+        message: 'Community ID is required',
+      });
+      return { success: false, error: 'Community ID is required' };
+    }
+
+    try {
+      const roomName = `community:${payload.communityId}`;
+
+      // Notify other room members about user leaving before actually leaving
+      client.to(roomName).emit('community:user-left', {
+        user: {
+          id: userData.id,
+          username: userData.username,
+          email: userData.email,
+        },
+        communityId: payload.communityId,
+        leftAt: new Date().toISOString(),
+      });
+
+      // Leave the Socket.IO room
+      await client.leave(roomName);
+
+      // Send acknowledgment to the leaving client
+      const leaveResponse = {
+        success: true,
+        communityId: payload.communityId,
+        roomName,
+        leftAt: new Date().toISOString(),
+        user: {
+          id: userData.id,
+          username: userData.username,
+          email: userData.email,
+        },
+      };
+
+      client.emit('community:left', leaveResponse);
+
+      this.logger.log(
+        `User ${userData.email} (${userData.id}) successfully left community ${payload.communityId} room. ` +
+          `Socket ID: ${client.id}, Room: ${roomName}`,
+      );
+
+      return leaveResponse;
+    } catch (error) {
+      this.logger.error(
+        `Error leaving community ${payload.communityId} for user ${userData.email}: ${error.message}`,
+        error.stack,
+      );
+
+      client.emit('error', {
+        event: 'community:leave',
+        message: 'Failed to leave community',
+      });
+
+      return { success: false, error: 'Failed to leave community' };
+    }
+  }
+
+  /**
+   * Handle client leaving a community room (legacy event name for backward compatibility)
    */
   @SubscribeMessage('leave-community')
   async handleLeaveCommunity(

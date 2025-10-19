@@ -8,9 +8,14 @@
  */
 
 const io = require('socket.io-client');
+const dotenv = require('dotenv');
+// Load environment variables from .env.local file
+dotenv.config({ path: '.env.test.local' });
 
 // Get token from command line argument or use a test token
 const token = process.argv[2] || process.env.JWT_TOKEN || 'your-jwt-token-here';
+
+console.log(`token ${token}`);
 
 // Connect to the WebSocket Gateway
 const socket = io('http://localhost:3000', {
@@ -29,8 +34,8 @@ socket.on('connect', () => {
 
   // Test joining a community
   setTimeout(() => {
-    console.log('📡 Joining test community...');
-    socket.emit('join-community', { communityId: 'test-community-123' });
+    console.log('📡 Joining test community with new event...');
+    socket.emit('community:join', { communityId: 'test-community-123' });
   }, 1000);
 });
 
@@ -39,9 +44,20 @@ socket.on('connected', (data) => {
   console.log('🎉 Connection confirmed with user data:', data);
 });
 
-// Joined community confirmation
+// Joined community confirmation (new event)
+socket.on('community:joined', (data) => {
+  console.log('🏠 Successfully joined community with new event:', data);
+
+  // Test leaving after 3 seconds
+  setTimeout(() => {
+    console.log('👋 Leaving community...');
+    socket.emit('leave-community', { communityId: data.communityId });
+  }, 3000);
+});
+
+// Joined community confirmation (legacy event for backward compatibility)
 socket.on('joined-community', (data) => {
-  console.log('🏠 Successfully joined community:', data);
+  console.log('🏠 Successfully joined community (legacy):', data);
 
   // Test leaving after 3 seconds
   setTimeout(() => {
@@ -72,7 +88,11 @@ socket.on('message:deleted', (data) => {
 });
 
 socket.on('user:joined', (data) => {
-  console.log('👤 User joined community:', data);
+  console.log('👤 User joined community (legacy):', data);
+});
+
+socket.on('community:user-joined', (data) => {
+  console.log('👤 User joined community (new):', data);
 });
 
 socket.on('user:left', (data) => {

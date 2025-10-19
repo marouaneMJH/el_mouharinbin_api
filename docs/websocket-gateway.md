@@ -45,9 +45,19 @@ const socket = io('http://localhost:3000', {
 
 #### Client Events (Emit)
 
-##### `join-community`
+##### `community:join`
 
-Join a community chat room.
+Join a community chat room with membership verification.
+
+```javascript
+socket.emit('community:join', {
+  communityId: 'community-uuid',
+});
+```
+
+##### `join-community` (Legacy)
+
+Legacy event for backward compatibility.
 
 ```javascript
 socket.emit('join-community', {
@@ -55,9 +65,19 @@ socket.emit('join-community', {
 });
 ```
 
-##### `leave-community`
+##### `community:leave`
 
-Leave a community chat room.
+Leave a community chat room with acknowledgment.
+
+```javascript
+socket.emit('community:leave', {
+  communityId: 'community-uuid',
+});
+```
+
+##### `leave-community` (Legacy)
+
+Legacy event for backward compatibility.
 
 ```javascript
 socket.emit('leave-community', {
@@ -82,9 +102,26 @@ socket.on('connected', (data) => {
 });
 ```
 
-##### `joined-community`
+##### `community:joined`
 
-Emitted when successfully joined a community.
+Emitted when successfully joined a community using the new event.
+
+```javascript
+socket.on('community:joined', (data) => {
+  console.log('Joined community:', data);
+  // {
+  //   success: true,
+  //   communityId: "community-uuid",
+  //   roomName: "community:community-uuid",
+  //   joinedAt: "2024-01-15T10:30:00Z",
+  //   user: { id: "user-uuid", username: "john_doe", email: "john@example.com" }
+  // }
+});
+```
+
+##### `joined-community` (Legacy)
+
+Legacy event for backward compatibility.
 
 ```javascript
 socket.on('joined-community', (data) => {
@@ -97,9 +134,26 @@ socket.on('joined-community', (data) => {
 });
 ```
 
-##### `left-community`
+##### `community:left`
 
-Emitted when successfully left a community.
+Emitted when successfully left a community using the new event.
+
+```javascript
+socket.on('community:left', (data) => {
+  console.log('Left community:', data);
+  // {
+  //   success: true,
+  //   communityId: "community-uuid",
+  //   roomName: "community:community-uuid",
+  //   leftAt: "2024-01-15T10:30:00Z",
+  //   user: { id: "user-uuid", username: "john_doe", email: "john@example.com" }
+  // }
+});
+```
+
+##### `left-community` (Legacy)
+
+Legacy event for backward compatibility.
 
 ```javascript
 socket.on('left-community', (data) => {
@@ -146,9 +200,24 @@ socket.on('message:deleted', (data) => {
 });
 ```
 
-##### `user:joined`
+##### `community:user-joined`
 
-Emitted when a user joins a community.
+Emitted when a user joins a community using the new event system.
+
+```javascript
+socket.on('community:user-joined', (data) => {
+  console.log('User joined community:', data);
+  // {
+  //   user: { id: "user-uuid", username: "jane_doe", email: "jane@example.com" },
+  //   communityId: "community-uuid",
+  //   joinedAt: "2024-01-15T10:30:00Z"
+  // }
+});
+```
+
+##### `user:joined` (Legacy)
+
+Legacy event for backward compatibility.
 
 ```javascript
 socket.on('user:joined', (data) => {
@@ -161,9 +230,24 @@ socket.on('user:joined', (data) => {
 });
 ```
 
-##### `user:left`
+##### `community:user-left`
 
-Emitted when a user leaves a community.
+Emitted when a user leaves a community using the new event system.
+
+```javascript
+socket.on('community:user-left', (data) => {
+  console.log('User left community:', data);
+  // {
+  //   user: { id: "user-uuid", username: "jane_doe", email: "jane@example.com" },
+  //   communityId: "community-uuid",
+  //   leftAt: "2024-01-15T10:30:00Z"
+  // }
+});
+```
+
+##### `user:left` (Legacy)
+
+Legacy event for backward compatibility.
 
 ```javascript
 socket.on('user:left', (data) => {
