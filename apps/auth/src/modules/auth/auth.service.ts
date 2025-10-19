@@ -98,6 +98,7 @@ export class AuthService {
     };
 
     this.logger.debug(`Login payload ${JSON.stringify(payload)}`);
+
     return {
       accessToken: this.generateAccessToken(payload),
       refreshToken: this.generateRefreshToken(payload),
@@ -430,10 +431,29 @@ export class AuthService {
    * @returns Access token string
    */
   private generateAccessToken(payload: JwtPayloadI): string {
-    return this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_SECRET'),
-      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN'),
-    });
+    try {
+      const secret = this.configService.get<string>('JWT_SECRET');
+      const expiresIn = this.configService.get<string>('JWT_EXPIRES_IN');
+
+      if (!secret) {
+        throw new Error('JWT_SECRET configuration is missing');
+      }
+
+      if (!expiresIn) {
+        throw new Error('JWT_EXPIRES_IN configuration is missing');
+      }
+
+      return this.jwtService.sign(payload, {
+        secret,
+        expiresIn,
+      });
+    } catch (error) {
+      this.logger.error('Failed to generate access token', {
+        error: error.message,
+        userId: payload.id,
+      });
+      throw new Error('Failed to generate access token');
+    }
   }
 
   private generateUserActivationLink(payload: {
@@ -443,7 +463,7 @@ export class AuthService {
     try {
       const token = this.jwtService.sign(payload, {
         secret: this.configService.get<string>('JWT_SECRET'),
-        expiresIn: this.configService.get<string>('JWT_ACTIVATION_EXPIRES_IN'), // Fixed typo
+        expiresIn: this.configService.get<string>('JWT_ACTIVATION_EXPIRES_IN'), // todo: Fixed typo
       });
 
       const baseUrl = this.configService.get('API_URL');
@@ -472,10 +492,31 @@ export class AuthService {
     // role: string;
     status: UserStatus;
   }): string {
-    return this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      expiresIn: 'JWT_REFRESH_EXPIRES_IN', // Long-lived refresh token
-    });
+    try {
+      const secret = this.configService.get<string>('JWT_REFRESH_SECRET');
+      const expiresIn = this.configService.get<string>(
+        'JWT_REFRESH_EXPIRES_IN',
+      );
+
+      if (!secret) {
+        throw new Error('JWT_REFRESH_SECRET configuration is missing');
+      }
+
+      if (!expiresIn) {
+        throw new Error('JWT_REFRESH_EXPIRES_IN configuration is missing');
+      }
+
+      return this.jwtService.sign(payload, {
+        secret,
+        expiresIn,
+      });
+    } catch (error) {
+      this.logger.error('Failed to generate refresh token', {
+        error: error.message,
+        userId: payload.id,
+      });
+      throw new Error('Failed to generate refresh token');
+    }
   }
 
   private checkUserStatusActive(user: UserI) {
