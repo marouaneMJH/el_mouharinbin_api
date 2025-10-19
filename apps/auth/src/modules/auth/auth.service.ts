@@ -37,30 +37,56 @@ export class AuthService {
     email,
     password,
   }: AuthPayloadDto): Promise<UserI | null> {
-    const user = await firstValueFrom(
-      this.usersClient.send<User | null>(
-        servicesPattern['users'].find_by_email,
-        { email },
-      ),
-    );
+    try {
+      this.logger.debug(`Attempting to find user with email: ${email}`);
 
-    // Check if the user exist and correct password
-    if (
-      !user ||
-      !user.password ||
-      !user.status ||
-      user.status != UserStatus.ACTIVE
-    ) {
+      const user = await firstValueFrom(
+        this.usersClient.send<User | null>(
+          servicesPattern['users'].find_by_email,
+          { email },
+        ),
+      );
+
+      this.logger.debug(`User lookup result:`, user);
+
+      // Check if the user exist and correct password
+      if (!user) {
+        this.logger.debug(`No user found with email: ${email}`);
+        return null;
+      }
+
+      if (!user.password) {
+        this.logger.debug(`User ${email} has no password set`);
+        return null;
+      }
+
+      if (!user.status) {
+        this.logger.debug(`User ${email} has no status set`);
+        return null;
+      }
+
+      if (user.status !== UserStatus.ACTIVE) {
+        this.logger.debug(
+          `User ${email} is not active. Status: ${user.status}`,
+        );
+        return null;
+      }
+
+      // Verify password
+      this.logger.debug(`Verifying password for user: ${email}`);
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        this.logger.debug(`Invalid password for user: ${email}`);
+        return null;
+      }
+
+      this.logger.debug(`User ${email} validated successfully`);
+      const { password: _, ...result } = user;
+      return result;
+    } catch (error) {
+      this.logger.error(`Error validating user ${email}:`, error);
       return null;
     }
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return null;
-    }
-
-    const { password: _, ...result } = user;
-    return result;
   }
 
   login(user: UserI): { accessToken: string; refreshToken: string } {
@@ -70,6 +96,8 @@ export class AuthService {
       // role: user.role,
       status: user.status,
     };
+
+    this.logger.debug(`Login payload ${JSON.stringify(payload)}`);
     return {
       accessToken: this.generateAccessToken(payload),
       refreshToken: this.generateRefreshToken(payload),
