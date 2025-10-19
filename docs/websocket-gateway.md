@@ -22,10 +22,10 @@ The WebSocket Gateway provides real-time communication capabilities for the chat
 
 ### 📡 Real-time Event Broadcasting
 
-- Message creation events
-- Message deletion events
-- User join/leave events
-- Automatic RabbitMQ integration
+- **Message Events:** creation, updates, deletion
+- **User Presence:** join/leave events from WebSocket and external services  
+- **Community Events:** announcements and system notifications
+- **Automatic RabbitMQ Integration:** Bidirectional event handling
 
 ## API Reference
 
@@ -231,6 +231,25 @@ socket.on('message:deleted', (data) => {
 });
 ```
 
+##### `message:updated`
+
+Emitted when a message is updated/edited.
+
+```javascript
+socket.on('message:updated', (data) => {
+  console.log('Message updated:', data);
+  // {
+  //   id: "message-uuid",
+  //   content: "Updated message content",
+  //   author: { id: "user-uuid", username: "john_doe" },
+  //   communityId: "community-uuid",
+  //   messageType: "TEXT",
+  //   updatedAt: "2024-01-15T10:35:00Z",
+  //   editedBy: "user-uuid"
+  // }
+});
+```
+
 ##### `message:sent`
 
 Emitted as acknowledgment when a message is successfully sent.
@@ -244,7 +263,8 @@ socket.on('message:sent', (data) => {
   //   communityId: "community-uuid",
   //   content: "Hello, world!",
   //   timestamp: "2024-01-15T10:30:00Z",
-  //   author: { id: "user-uuid", username: "john_doe" }
+  //   author: { id: "user-uuid", username: "john_doe" },
+  //   rabbitMQProcessed: true
   // }
 });
 ```
@@ -309,6 +329,22 @@ socket.on('user:left', (data) => {
 });
 ```
 
+##### `community:announcement`
+
+Emitted when community-wide announcements are made.
+
+```javascript
+socket.on('community:announcement', (data) => {
+  console.log('Community announcement:', data);
+  // {
+  //   type: "system" | "admin" | "event",
+  //   message: "Welcome to the community!",
+  //   timestamp: "2024-01-15T10:30:00Z",
+  //   metadata: { priority: "high", category: "welcome" }
+  // }
+});
+```
+
 ##### Error Events
 
 ```javascript
@@ -335,8 +371,15 @@ The gateway both listens for RabbitMQ events and publishes new events:
 
 ### Incoming Event Patterns (Listen)
 
+**Message Events:**
 - `chat.message.created` → `message:created` WebSocket event
+- `chat.message.updated` → `message:updated` WebSocket event  
 - `chat.message.deleted` → `message:deleted` WebSocket event
+
+**Community Events:**
+- `community.user.joined` → `community:user-joined` WebSocket event
+- `community.user.left` → `community:user-left` WebSocket event
+- `community.announcement` → `community:announcement` WebSocket event
 
 ### Outgoing Event Patterns (Publish)
 

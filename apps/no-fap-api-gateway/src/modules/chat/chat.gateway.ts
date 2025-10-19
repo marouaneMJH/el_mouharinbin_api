@@ -74,9 +74,8 @@ export class ChatGateway
       'Setting up RabbitMQ event listeners for WebSocket broadcasting',
     );
 
-    // Note: In a real implementation, you would use a dedicated event consumer
-    // For now, we'll provide the structure for broadcasting events
-    // The actual event listening would be implemented in a separate service
+    // Event listeners are implemented as @EventPattern decorated methods below
+    // This ensures automatic subscription to RabbitMQ events when the module initializes
   }
 
   /**
@@ -800,6 +799,49 @@ export class ChatGateway
   }
 
   /**
+   * Handle message updated events from RabbitMQ and broadcast to WebSocket clients
+   */
+  @EventPattern('chat.message.updated')
+  async handleMessageUpdated(data: {
+    messageId: string;
+    content: string;
+    authorId: string;
+    authorUsername: string;
+    communityId: string;
+    updatedAt: string;
+    messageType: string;
+    editedBy?: string;
+  }) {
+    try {
+      const roomName = `community:${data.communityId}`;
+
+      // Broadcast message update to all clients in the community room
+      this.server.to(roomName).emit('message:updated', {
+        id: data.messageId,
+        content: data.content,
+        author: {
+          id: data.authorId,
+          username: data.authorUsername,
+        },
+        communityId: data.communityId,
+        messageType: data.messageType,
+        updatedAt: data.updatedAt,
+        editedBy: data.editedBy,
+      });
+
+      this.logger.debug(
+        `Broadcasting message updated event to room ${roomName}. ` +
+          `Message ID: ${data.messageId}, Author: ${data.authorUsername}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error broadcasting message updated event: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  /**
    * Handle message deleted events from RabbitMQ and broadcast to WebSocket clients
    */
   @EventPattern('chat.message.deleted')
@@ -827,6 +869,139 @@ export class ChatGateway
     } catch (error) {
       this.logger.error(
         `Error broadcasting message deleted event: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  /**
+   * Handle user joined community events from RabbitMQ and broadcast to WebSocket clients
+   * This handles joins that happen outside the WebSocket gateway (e.g., via REST API)
+   */
+  @EventPattern('community.user.joined')
+  async handleUserJoinedCommunity(data: {
+    userId: string;
+    username: string;
+    email: string;
+    communityId: string;
+    joinedAt: string;
+  }) {
+    try {
+      const roomName = `community:${data.communityId}`;
+
+      // Broadcast user joined event to all clients in the community room
+      this.server.to(roomName).emit('community:user-joined', {
+        user: {
+          id: data.userId,
+          username: data.username,
+          email: data.email,
+        },
+        communityId: data.communityId,
+        joinedAt: data.joinedAt,
+      });
+
+      // Also emit legacy event for backward compatibility
+      this.server.to(roomName).emit('user:joined', {
+        user: {
+          id: data.userId,
+          username: data.username,
+          email: data.email,
+        },
+        communityId: data.communityId,
+        joinedAt: data.joinedAt,
+      });
+
+      this.logger.debug(
+        `Broadcasting user joined event to room ${roomName}. ` +
+          `User: ${data.username} (${data.userId})`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error broadcasting user joined event: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  /**
+   * Handle user left community events from RabbitMQ and broadcast to WebSocket clients
+   * This handles leaves that happen outside the WebSocket gateway (e.g., via REST API)
+   */
+  @EventPattern('community.user.left')
+  async handleUserLeftCommunity(data: {
+    userId: string;
+    username: string;
+    email: string;
+    communityId: string;
+    leftAt: string;
+  }) {
+    try {
+      const roomName = `community:${data.communityId}`;
+
+      // Broadcast user left event to all clients in the community room
+      this.server.to(roomName).emit('community:user-left', {
+        user: {
+          id: data.userId,
+          username: data.username,
+          email: data.email,
+        },
+        communityId: data.communityId,
+        leftAt: data.leftAt,
+      });
+
+      // Also emit legacy event for backward compatibility
+      this.server.to(roomName).emit('user:left', {
+        user: {
+          id: data.userId,
+          username: data.username,
+          email: data.email,
+        },
+        communityId: data.communityId,
+        leftAt: data.leftAt,
+      });
+
+      this.logger.debug(
+        `Broadcasting user left event to room ${roomName}. ` +
+          `User: ${data.username} (${data.userId})`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error broadcasting user left event: ${error.message}`,
+        error.stack,
+      );
+    }
+  }
+
+  /**
+   * Handle community events from RabbitMQ and broadcast to WebSocket clients
+   * This handles community-wide events like creation, updates, or announcements
+   */
+  @EventPattern('community.announcement')
+  async handleCommunityAnnouncement(data: {
+    communityId: string;
+    type: string;
+    message: string;
+    timestamp: string;
+    metadata?: any;
+  }) {
+    try {
+      const roomName = `community:${data.communityId}`;
+
+      // Broadcast community announcement to all clients in the room
+      this.server.to(roomName).emit('community:announcement', {
+        type: data.type,
+        message: data.message,
+        timestamp: data.timestamp,
+        metadata: data.metadata,
+      });
+
+      this.logger.debug(
+        `Broadcasting community announcement to room ${roomName}. ` +
+          `Type: ${data.type}, Message: ${data.message.substring(0, 50)}...`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error broadcasting community announcement: ${error.message}`,
         error.stack,
       );
     }
