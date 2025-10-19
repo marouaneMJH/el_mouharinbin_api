@@ -5,16 +5,7 @@ echo "============================================"
 
 # Configuration
 API_URL="http://localhost:3000/api/communities"
-JWT_SECRET=${JWT_SECRET:-"your-jwt-secret-key"}
 
-# Fonction pour générer un token JWT simple (pour les tests)
-generate_test_token() {
-  # Token JWT simple pour les tests (ne pas utiliser en production)
-  # Header: {"alg":"HS256","typ":"JWT"}
-  # Payload: {"id":"user-123","email":"test@example.com","role":"user","status":"active","iat":1697659200}
-  # Signature avec le secret JWT
-    echo "your-jwt-secret-key"
-}
 
 # Attendre que le service démarre
 echo "⏳ Attente du démarrage du service Chat..."
@@ -29,6 +20,21 @@ for i in {1..30}; do
   fi
   sleep 1
 done
+
+# Read JWT token from .env file
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+  JWT_TOKEN=$JWT_TOKEN
+  if [ -z "$JWT_TOKEN" ]; then
+    echo "❌ JWT_TOKEN not found in .env file"
+    exit 1
+  else
+    echo "✅ JWT token loaded from .env file"
+  fi
+else
+  echo "❌ .env file not found"
+  exit 1
+fi
 
 
 

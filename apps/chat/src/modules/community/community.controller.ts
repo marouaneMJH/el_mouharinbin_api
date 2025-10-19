@@ -1,4 +1,4 @@
-import { Controller } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { CommunityService } from './community.service';
 import {
@@ -10,6 +10,7 @@ import {
 
 @Controller()
 export class CommunityController {
+  private readonly logger = new Logger(CommunityController.name);
   constructor(private readonly communityService: CommunityService) {}
 
   // ===== GESTIONNAIRES DE MESSAGES RABBITMQ =====
@@ -19,9 +20,12 @@ export class CommunityController {
    */
   @MessagePattern('community.create')
   async handleCreateCommunity(data: CreateCommunityDto & { userId: string }) {
+    this.logger.debug('Creating community with data: ' + JSON.stringify(data));
     try {
       const { userId, ...createCommunityDto } = data;
-
+      this.logger.debug(
+        'Creating community with data: ' + JSON.stringify(data),
+      );
       return await this.communityService.createCommunity(
         createCommunityDto,
         userId,

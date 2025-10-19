@@ -77,14 +77,13 @@ export class CommunityController {
   ): Promise<CommunityResponseDto> {
     try {
       // Envoyer la requête au service Chat via RabbitMQ
-      const result = await firstValueFrom(
+      return await firstValueFrom(
         this.chatClient.send('community.create', {
           ...createCommunityDto,
           userId: req.user.id,
         }),
       );
-
-      return result;
+      // return { id: 'ddd', name: 'sss' } as CommunityResponseDto;
     } catch (error) {
       console.error('Erreur lors de la création de la communauté:', error);
 
