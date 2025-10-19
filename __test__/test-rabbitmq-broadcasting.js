@@ -33,7 +33,7 @@ const tests = {
   messageSent: false,
   messageReceived: false,
   presenceEvents: false,
-  rabbitMQFlow: false
+  rabbitMQFlow: false,
 };
 
 let receivedEvents = {
@@ -41,24 +41,24 @@ let receivedEvents = {
   messageUpdated: false,
   userJoined: false,
   userLeft: false,
-  announcement: false
+  announcement: false,
 };
 
 function runTests() {
   console.log('📡 Creating two WebSocket connections to test broadcasting...');
-  
+
   // First client (sender)
   socket1 = io(WEBSOCKET_URL, {
     auth: { token: JWT_TOKEN },
     timeout: 5000,
-    forceNew: true
+    forceNew: true,
   });
 
   // Second client (receiver)
   socket2 = io(WEBSOCKET_URL, {
     auth: { token: JWT_TOKEN },
     timeout: 5000,
-    forceNew: true
+    forceNew: true,
   });
 
   let connectionsReady = 0;
@@ -76,7 +76,7 @@ function runTests() {
     console.log(`👤 User: ${data.user?.username}`);
   });
 
-  // Setup Socket 2 (Receiver) 
+  // Setup Socket 2 (Receiver)
   socket2.on('connect', () => {
     console.log('✅ Socket 2 connected (Receiver)');
     console.log(`🔌 Socket 2 ID: ${socket2.id}`);
@@ -115,30 +115,36 @@ function runTests() {
 function setupEventListeners() {
   // Listen for RabbitMQ broadcasted events on Socket 2
   socket2.on('message:created', (data) => {
-    console.log('📨 Socket 2 received message:created from RabbitMQ broadcast:', {
-      id: data.id,
-      content: data.content.substring(0, 30) + '...',
-      author: data.author.username,
-      communityId: data.communityId
-    });
+    console.log(
+      '📨 Socket 2 received message:created from RabbitMQ broadcast:',
+      {
+        id: data.id,
+        content: data.content.substring(0, 30) + '...',
+        author: data.author.username,
+        communityId: data.communityId,
+      },
+    );
     receivedEvents.messageCreated = true;
     tests.messageReceived = true;
     tests.rabbitMQFlow = true;
   });
 
   socket2.on('message:updated', (data) => {
-    console.log('📝 Socket 2 received message:updated from RabbitMQ broadcast:', {
-      id: data.id,
-      content: data.content.substring(0, 30) + '...',
-      updatedAt: data.updatedAt
-    });
+    console.log(
+      '📝 Socket 2 received message:updated from RabbitMQ broadcast:',
+      {
+        id: data.id,
+        content: data.content.substring(0, 30) + '...',
+        updatedAt: data.updatedAt,
+      },
+    );
     receivedEvents.messageUpdated = true;
   });
 
   socket2.on('community:user-joined', (data) => {
     console.log('👥 Socket 2 received user joined from RabbitMQ broadcast:', {
       user: data.user.username,
-      communityId: data.communityId
+      communityId: data.communityId,
     });
     receivedEvents.userJoined = true;
     tests.presenceEvents = true;
@@ -147,7 +153,7 @@ function setupEventListeners() {
   socket2.on('community:user-left', (data) => {
     console.log('👋 Socket 2 received user left from RabbitMQ broadcast:', {
       user: data.user.username,
-      communityId: data.communityId
+      communityId: data.communityId,
     });
     receivedEvents.userLeft = true;
   });
@@ -155,7 +161,7 @@ function setupEventListeners() {
   socket2.on('community:announcement', (data) => {
     console.log('📢 Socket 2 received announcement from RabbitMQ broadcast:', {
       type: data.type,
-      message: data.message.substring(0, 50) + '...'
+      message: data.message.substring(0, 50) + '...',
     });
     receivedEvents.announcement = true;
   });
@@ -165,7 +171,7 @@ function setupEventListeners() {
     console.log('✅ Socket 1 received message:sent acknowledgment:', {
       success: data.success,
       messageId: data.messageId,
-      rabbitMQProcessed: data.rabbitMQProcessed
+      rabbitMQProcessed: data.rabbitMQProcessed,
     });
     tests.messageSent = true;
   });
@@ -180,7 +186,7 @@ function startTests() {
 
   // Step 1: Both sockets join the same community
   console.log('📡 Step 1: Both sockets joining community...');
-  
+
   socket1.emit('community:join', { communityId: TEST_COMMUNITY_ID });
   socket2.emit('community:join', { communityId: TEST_COMMUNITY_ID });
 
@@ -191,17 +197,22 @@ function startTests() {
 
   socket2.on('community:joined', (data) => {
     console.log('✅ Socket 2 joined community:', data.roomName);
-    
+
     // Step 2: Send message from Socket 1 to test RabbitMQ flow
     setTimeout(() => {
       console.log('');
-      console.log('📡 Step 2: Sending message to test RabbitMQ broadcasting...');
-      console.log('💡 Expected flow: Socket1 → Gateway → RabbitMQ → Gateway → Socket2');
-      
+      console.log(
+        '📡 Step 2: Sending message to test RabbitMQ broadcasting...',
+      );
+      console.log(
+        '💡 Expected flow: Socket1 → Gateway → RabbitMQ → Gateway → Socket2',
+      );
+
       socket1.emit('message:send', {
         communityId: TEST_COMMUNITY_ID,
-        content: 'Testing RabbitMQ broadcasting flow - this message should be broadcasted to all clients',
-        messageType: 'TEXT'
+        content:
+          'Testing RabbitMQ broadcasting flow - this message should be broadcasted to all clients',
+        messageType: 'TEXT',
       });
     }, 1000);
   });
@@ -210,14 +221,18 @@ function startTests() {
   setTimeout(() => {
     console.log('');
     console.log('📡 Step 3: Checking if RabbitMQ events were received...');
-    
+
     if (tests.rabbitMQFlow) {
       console.log('✅ RabbitMQ broadcasting working!');
     } else {
-      console.log('⚠️  RabbitMQ broadcasting not detected (Chat service may not be running)');
-      console.log('💡 This is normal if only the Gateway is running without the Chat service');
+      console.log(
+        '⚠️  RabbitMQ broadcasting not detected (Chat service may not be running)',
+      );
+      console.log(
+        '💡 This is normal if only the Gateway is running without the Chat service',
+      );
     }
-    
+
     setTimeout(() => {
       printResults();
       cleanup();
@@ -229,29 +244,34 @@ function printResults() {
   console.log('');
   console.log('📊 RabbitMQ Broadcasting Test Results');
   console.log('=====================================');
-  
+
   Object.entries(tests).forEach(([test, passed]) => {
     console.log(`${passed ? '✅' : '❌'} ${test}: ${passed ? 'PASS' : 'FAIL'}`);
   });
-  
+
   console.log('');
   console.log('📡 RabbitMQ Event Reception:');
   Object.entries(receivedEvents).forEach(([event, received]) => {
-    console.log(`${received ? '✅' : '⏸️ '} ${event}: ${received ? 'RECEIVED' : 'NOT RECEIVED'}`);
+    console.log(
+      `${received ? '✅' : '⏸️ '} ${event}: ${received ? 'RECEIVED' : 'NOT RECEIVED'}`,
+    );
   });
-  
+
   const totalTests = Object.keys(tests).length;
-  const passedTests = Object.values(tests).filter(result => result).length;
-  
+  const passedTests = Object.values(tests).filter((result) => result).length;
+
   console.log('');
   console.log(`📈 Overall: ${passedTests}/${totalTests} tests passed`);
-  
-  if (passedTests >= 4) { // Basic WebSocket functionality working
+
+  if (passedTests >= 4) {
+    // Basic WebSocket functionality working
     console.log('🎉 WebSocket Gateway is working correctly!');
     if (tests.rabbitMQFlow) {
       console.log('🚀 RabbitMQ integration is FULLY FUNCTIONAL!');
     } else {
-      console.log('📝 RabbitMQ integration ready (requires Chat service running)');
+      console.log(
+        '📝 RabbitMQ integration ready (requires Chat service running)',
+      );
     }
   } else {
     console.log('⚠️  Some basic functionality failed');
@@ -267,10 +287,10 @@ function cleanup() {
     socket2.disconnect();
     console.log('🔌 Socket 2 disconnected');
   }
-  
+
   const totalTests = Object.keys(tests).length;
-  const passedTests = Object.values(tests).filter(result => result).length;
-  
+  const passedTests = Object.values(tests).filter((result) => result).length;
+
   process.exit(passedTests >= 4 ? 0 : 1);
 }
 

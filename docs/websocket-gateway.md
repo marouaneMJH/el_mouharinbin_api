@@ -23,7 +23,7 @@ The WebSocket Gateway provides real-time communication capabilities for the chat
 ### 📡 Real-time Event Broadcasting
 
 - **Message Events:** creation, updates, deletion
-- **User Presence:** join/leave events from WebSocket and external services  
+- **User Presence:** join/leave events from WebSocket and external services
 - **Community Events:** announcements and system notifications
 - **Automatic RabbitMQ Integration:** Bidirectional event handling
 
@@ -372,11 +372,13 @@ The gateway both listens for RabbitMQ events and publishes new events:
 ### Incoming Event Patterns (Listen)
 
 **Message Events:**
+
 - `chat.message.created` → `message:created` WebSocket event
-- `chat.message.updated` → `message:updated` WebSocket event  
+- `chat.message.updated` → `message:updated` WebSocket event
 - `chat.message.deleted` → `message:deleted` WebSocket event
 
 **Community Events:**
+
 - `community.user.joined` → `community:user-joined` WebSocket event
 - `community.user.left` → `community:user-left` WebSocket event
 - `community.announcement` → `community:announcement` WebSocket event
