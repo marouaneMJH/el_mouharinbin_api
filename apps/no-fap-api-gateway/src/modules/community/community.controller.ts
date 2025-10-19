@@ -265,4 +265,124 @@ export class CommunityController {
       );
     }
   }
+
+  /**
+   * Rejoindre une communauté
+   * En tant qu'utilisateur authentifié
+   * Je veux rejoindre une communauté
+   * Afin de participer aux discussions
+   */
+  @Post(':id/join')
+  @ApiOperation({
+    summary: 'Rejoindre une communauté',
+    description:
+      "Permet à un utilisateur authentifié de rejoindre une communauté existante. L'utilisateur devient membre de la communauté.",
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la communauté à rejoindre',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Utilisateur ajouté à la communauté avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Vous avez rejoint la communauté avec succès' },
+        communityId: { type: 'string', format: 'uuid' },
+        userId: { type: 'string', format: 'uuid' },
+        membershipStatus: { type: 'string', example: 'MEMBER' },
+        joinedAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Utilisateur déjà membre ou communauté pleine',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { 
+          type: 'string', 
+          examples: [
+            'Vous êtes déjà membre de cette communauté',
+            'La communauté a atteint le nombre maximum de membres'
+          ]
+        },
+        statusCode: { type: 'number', example: 400 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Communauté non trouvée',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Communauté non trouvée' },
+        statusCode: { type: 'number', example: 404 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Non authentifié',
+  })
+  async joinCommunity(
+    @Param('id') communityId: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<{
+    message: string;
+    communityId: string;
+    userId: string;
+    membershipStatus: string;
+    joinedAt: string;
+  }> {
+    try {
+      const result = await firstValueFrom(
+        this.chatClient.send('community.join', {
+          communityId,
+          userId: req.user.id,
+          userEmail: req.user.email,
+        }),
+      );
+
+      return result;
+    } catch (error) {
+      console.error('Erreur lors de la jonction à la communauté:', error);
+
+      if (error.statusCode) {
+        throw new HttpException(error.message, error.statusCode);
+      }
+
+      // Map specific errors
+      if (error.message?.includes('déjà membre')) {
+        throw new HttpException(
+          'Vous êtes déjà membre de cette communauté',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (error.message?.includes('pleine') || error.message?.includes('maximum')) {
+        throw new HttpException(
+          'La communauté a atteint le nombre maximum de membres',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (error.message?.includes('non trouvée') || error.message?.includes('not found')) {
+        throw new HttpException(
+          'Communauté non trouvée',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      throw new HttpException(
+        'Erreur interne lors de la jonction à la communauté',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

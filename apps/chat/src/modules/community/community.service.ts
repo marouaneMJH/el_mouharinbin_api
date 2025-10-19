@@ -455,4 +455,113 @@ export class CommunityService {
       );
     }
   }
+
+  /**
+   * Rejoindre une communauté existante
+   * @param communityId - ID de la communauté à rejoindre
+   * @param userId - ID de l'utilisateur qui veut rejoindre
+   * @param userEmail - Email de l'utilisateur (pour l'événement)
+   * @returns Informations de membership
+   */
+  async joinCommunity(
+    communityId: string,
+    userId: string,
+    userEmail: string,
+  ): Promise<{
+    message: string;
+    communityId: string;
+    userId: string;
+    membershipStatus: string;
+    joinedAt: string;
+  }> {
+    try {
+      // Vérifier si la communauté existe
+      const community = await this.prisma.community.findUnique({
+        where: { id: communityId },
+        include: {
+          _count: {
+            select: { members: true },
+          },
+        },
+      });
+
+      if (!community) {
+        throw new HttpException(
+          'Communauté non trouvée',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // Vérifier si l'utilisateur est déjà membre
+      const existingMembership = await this.prisma.communityMember.findUnique({
+        where: {
+          communityId_userId: {
+            communityId,
+            userId,
+          },
+        },
+      });
+
+      if (existingMembership) {
+        throw new HttpException(
+          'Vous êtes déjà membre de cette communauté',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Vérifier si la communauté a atteint le nombre maximum de membres
+      if (community._count.members >= community.maxMembers) {
+        throw new HttpException(
+          'La communauté a atteint le nombre maximum de membres',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Créer le membership
+      const newMember = await this.prisma.communityMember.create({
+        data: {
+          userId,
+          communityId,
+          role: 'member', // Using string literal instead of enum
+          joinedAt: new Date(),
+        },
+      });
+
+      // TODO: Publier l'événement RabbitMQ (chat.user.joined)
+      // Cette partie sera implémentée quand le service d'événements sera disponible
+      /*
+      try {
+        await this.eventService.publishUserJoinedEvent({
+          communityId,
+          userId,
+          userEmail,
+          communityName: community.name,
+          joinedAt: newMember.joinedAt,
+        });
+      } catch (eventError) {
+        console.warn('Erreur lors de la publication de l\'événement:', eventError);
+        // Ne pas faire échouer la jonction pour un problème d'événement
+      }
+      */
+
+      return {
+        message: 'Vous avez rejoint la communauté avec succès',
+        communityId,
+        userId,
+        membershipStatus: newMember.role,
+        joinedAt: newMember.joinedAt.toISOString(),
+      };
+    } catch (error) {
+      // Re-throw HttpExceptions as-is
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Erreur lors de la jonction à la communauté:', error);
+      throw new HttpException(
+        'Erreur interne lors de la jonction à la communauté',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
 }

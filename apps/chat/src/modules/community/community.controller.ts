@@ -94,4 +94,28 @@ export class CommunityController {
       throw error;
     }
   }
+
+  /**
+   * Gestionnaire RabbitMQ pour rejoindre une communauté
+   */
+  @MessagePattern('community.join')
+  async handleJoinCommunity(data: {
+    communityId: string;
+    userId: string;
+    userEmail: string;
+  }) {
+    try {
+      return await this.communityService.joinCommunity(
+        data.communityId,
+        data.userId,
+        data.userEmail,
+      );
+    } catch (error) {
+      console.error(
+        'Erreur RabbitMQ lors de la jonction à la communauté:',
+        error,
+      );
+      throw error;
+    }
+  }
 }
