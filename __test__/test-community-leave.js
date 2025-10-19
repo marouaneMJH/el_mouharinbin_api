@@ -199,8 +199,17 @@ function cleanup() {
   if (timeoutId) {
     clearTimeout(timeoutId);
   }
-  socket.disconnect();
-  process.exit(passedTests === Object.keys(testResults).length ? 0 : 1);
+  if (socket) {
+    console.log('🔌 Disconnected: io client disconnect');
+    socket.disconnect();
+  }
+
+  const totalTests = Object.keys(testResults).length;
+  const passedTests = Object.values(testResults).filter(
+    (result) => result,
+  ).length;
+
+  process.exit(passedTests === totalTests ? 0 : 1);
 }
 
 // Handle process termination

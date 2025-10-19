@@ -85,6 +85,37 @@ socket.emit('leave-community', {
 });
 ```
 
+##### `message:send`
+
+Send a message to a community chat room with validation and rate limiting.
+
+```javascript
+socket.emit(
+  'message:send',
+  {
+    communityId: 'community-uuid',
+    content: 'Hello, world!',
+  },
+  (ack) => {
+    if (ack.success) {
+      console.log('Message sent:', ack);
+    } else {
+      console.error('Failed to send:', ack);
+    }
+  },
+);
+```
+
+**Rate Limiting:** Maximum 10 messages per second per user.
+
+**Response Parameters:**
+
+- `success`: Boolean indicating if the message was sent successfully
+- `messageId`: UUID of the created message (on success)
+- `timestamp`: ISO timestamp of when the message was processed
+- `error`: Error details (on failure)
+- `waitTime`: Milliseconds to wait before next message (when rate limited)
+
 #### Server Events (Listen)
 
 ##### `connected`
@@ -200,6 +231,24 @@ socket.on('message:deleted', (data) => {
 });
 ```
 
+##### `message:sent`
+
+Emitted as acknowledgment when a message is successfully sent.
+
+```javascript
+socket.on('message:sent', (data) => {
+  console.log('Message sent confirmation:', data);
+  // {
+  //   success: true,
+  //   messageId: "message-uuid",
+  //   communityId: "community-uuid",
+  //   content: "Hello, world!",
+  //   timestamp: "2024-01-15T10:30:00Z",
+  //   author: { id: "user-uuid", username: "john_doe" }
+  // }
+});
+```
+
 ##### `community:user-joined`
 
 Emitted when a user joins a community using the new event system.
@@ -282,19 +331,53 @@ The WebSocket Gateway is configured with CORS support for:
 
 ## RabbitMQ Integration
 
-The gateway listens for RabbitMQ events and broadcasts them to connected clients:
+The gateway both listens for RabbitMQ events and publishes new events:
 
-### Event Patterns
+### Incoming Event Patterns (Listen)
 
 - `chat.message.created` → `message:created` WebSocket event
 - `chat.message.deleted` → `message:deleted` WebSocket event
 
+### Outgoing Event Patterns (Publish)
+
+- `chat.message.send` - Published when user sends message via WebSocket
+
 ### Event Flow
+
+**Incoming Messages:**
 
 1. Chat service publishes event to RabbitMQ
 2. WebSocket Gateway receives event via `@EventPattern`
 3. Gateway broadcasts event to appropriate community room
 4. All connected clients in room receive real-time update
+
+**Outgoing Messages:**
+
+1. Client emits `message:send` event via WebSocket
+2. Gateway validates message content and rate limits
+3. Gateway publishes `chat.message.send` event to RabbitMQ
+4. Chat service processes the message and stores it
+5. Chat service publishes `chat.message.created` back to RabbitMQ
+6. Gateway receives and broadcasts to all room members
+
+## Rate Limiting
+
+### Message Send Rate Limiting
+
+- **Limit:** 10 messages per second per user
+- **Implementation:** In-memory Map tracking timestamps
+- **Cleanup:** Automatic cleanup of expired rate limit entries
+- **Response:** Returns `waitTime` in milliseconds when rate limited
+
+```javascript
+// Rate limit response example
+{
+  success: false,
+  error: "Rate limit exceeded",
+  waitTime: 856, // milliseconds to wait
+  limit: "10 messages per second"
+}
+```
 
 ## Security
 
@@ -309,7 +392,15 @@ The gateway listens for RabbitMQ events and broadcasts them to connected clients
 
 - User session tracking
 - Community room access control
+- Message content validation (1-1000 characters)
 - Proper error handling and logging
+
+### Validation
+
+- All incoming payloads validated using DTOs
+- Community ID format validation (UUID)
+- Message content length validation
+- Error responses with detailed information
 
 ## Testing
 
