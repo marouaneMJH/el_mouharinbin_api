@@ -21,17 +21,11 @@ export class AuthService {
 
   async login(loginPayload: LoginPayloadI) {
     try {
-      this.logger.debug(`[login()] Respond of the server `);
-      const res = await firstValueFrom(
+      return await firstValueFrom(
         this.authClient.send(servicesPattern.auth.login, {
           ...loginPayload,
         }),
       );
-
-      this.logger.debug(
-        `[login()] Respond of the server ${JSON.stringify(res)}`,
-      );
-      return res;
     } catch (error) {
       this.logger.error(error);
     }

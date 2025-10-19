@@ -30,8 +30,7 @@ for i in {1..30}; do
   sleep 1
 done
 
-# Token pour les tests
-TOKEN=$(generate_test_token)
+
 
 echo ""
 echo "🔍 Tests des critères d'acceptation:"
@@ -41,7 +40,7 @@ echo ""
 echo "1. ✅ Test de création de communauté valide..."
 RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $JWT_TOKEN" \
   -d '{
     "name": "Test Community",
     "description": "Une communauté de test pour valider l'\''endpoint",
@@ -77,7 +76,7 @@ echo ""
 echo "2. ✅ Test de validation - nom trop court..."
 RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $JWT_TOKEN" \
   -d '{
     "name": "AB",
     "description": "Nom trop court"
@@ -98,7 +97,7 @@ echo "3. ✅ Test de validation - description trop longue..."
 LONG_DESC=$(printf 'A%.0s' {1..501})  # 501 caractères
 RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $JWT_TOKEN" \
   -d "{
     \"name\": \"Test Long Desc\",
     \"description\": \"$LONG_DESC\"
@@ -137,7 +136,7 @@ echo ""
 echo "5. ✅ Test de conflit de nom..."
 RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $JWT_TOKEN" \
   -d '{
     "name": "Test Community",
     "description": "Même nom que le premier test"

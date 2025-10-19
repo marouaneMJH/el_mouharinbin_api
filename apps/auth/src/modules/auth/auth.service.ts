@@ -97,8 +97,6 @@ export class AuthService {
       status: user.status,
     };
 
-    this.logger.debug(`Login payload ${JSON.stringify(payload)}`);
-
     return {
       accessToken: this.generateAccessToken(payload),
       refreshToken: this.generateRefreshToken(payload),
