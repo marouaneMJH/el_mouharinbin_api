@@ -14,13 +14,16 @@ export class ChatService {
   async createSession({
     userId,
     username,
+    socketId,
   }: {
     userId: string;
     username: string;
+    socketId: string;
   }) {
     return this.chatClient.send(servicesPattern.chat.create, {
       userId,
       username,
+      socketId,
     });
   }
 
