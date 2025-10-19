@@ -12,8 +12,8 @@ CHAT_SERVICE_URL="http://localhost:3001"
 
 # Test data
 USER_ID="123e4567-e89b-12d3-a456-426614174000"
-USERNAME="testuser"
-COMMUNITY_ID="123e4567-e89b-12d3-a456-426614174001"
+USERNAME="marouaneel"
+COMMUNITY_ID=""
 
 echo "📝 Test 1: Send a simple text message"
 curl -X POST "$CHAT_SERVICE_URL/send-message" \

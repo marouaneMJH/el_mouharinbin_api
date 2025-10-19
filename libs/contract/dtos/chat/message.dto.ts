@@ -330,3 +330,55 @@ export class SearchMessagesDto {
   @Type(() => Number)
   offset?: number = 0;
 }
+
+/**
+ * DTO pour la réponse paginée des messages
+ */
+export class PaginatedMessagesDto {
+  /**
+   * Liste des messages
+   */
+  messages: MessageResponseDto[];
+
+  /**
+   * Indique s'il y a des messages suivants
+   */
+  hasNextPage: boolean;
+
+  /**
+   * Indique s'il y a des messages précédents
+   */
+  hasPrevPage: boolean;
+
+  /**
+   * ID du curseur pour la page suivante
+   */
+  nextCursor?: string;
+
+  /**
+   * ID du curseur pour la page précédente
+   */
+  prevCursor?: string;
+
+  /**
+   * Nombre total de messages retournés
+   */
+  count: number;
+
+  /**
+   * Limite utilisée pour cette requête
+   */
+  limit: number;
+}
+
+/**
+ * DTO pour récupérer les messages avec l'ID utilisateur
+ */
+export class GetMessagesWithUserDto extends GetMessagesDto {
+  /**
+   * ID de l'utilisateur qui fait la demande
+   */
+  @IsUUID('4', { message: "L'ID de l'utilisateur doit être un UUID valide" })
+  @IsNotEmpty()
+  requesterId: string;
+}

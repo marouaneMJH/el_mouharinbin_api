@@ -29,6 +29,8 @@ import {
   PaginatedCommunitiesDto,
   GetMembersDto,
   PaginatedMembersDto,
+  GetMessagesDto,
+  PaginatedMessagesDto,
 } from '../../../../../libs/contract/dtos/chat';
 import { JwtAuthGuard } from '../../../../../libs/contract/guards/jwt.guard';
 import JwtPayloadI from '../../../../../libs/contract/interfaces/jwt-paylaod.interface';
@@ -638,6 +640,111 @@ export class CommunityController {
 
       throw new HttpException(
         'Erreur interne lors de la récupération des membres',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Récupérer l'historique des messages d'une communauté
+   */
+  @Get(':id/messages')
+  @ApiOperation({
+    summary: "Récupérer l'historique des messages d'une communauté",
+    description:
+      'Permet aux membres de consulter les messages précédents avec pagination cursor-based',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID de la communauté',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: 'Nombre maximum de messages à retourner',
+    required: false,
+    example: 50,
+  })
+  @ApiQuery({
+    name: 'cursor',
+    description: 'ID du message pour la pagination cursor-based',
+    required: false,
+    example: '123e4567-e89b-12d3-a456-426614174001',
+  })
+  @ApiQuery({
+    name: 'messageType',
+    description: 'Filtrer par type de message',
+    required: false,
+    enum: ['text', 'image', 'file', 'system'],
+  })
+  @ApiQuery({
+    name: 'userId',
+    description: 'Filtrer par utilisateur',
+    required: false,
+    example: '123e4567-e89b-12d3-a456-426614174002',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    description: 'Date de début pour la recherche (ISO 8601)',
+    required: false,
+    example: '2024-01-01T00:00:00.000Z',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    description: 'Date de fin pour la recherche (ISO 8601)',
+    required: false,
+    example: '2024-12-31T23:59:59.000Z',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Historique des messages récupéré avec succès',
+    type: PaginatedMessagesDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Accès refusé - utilisateur non membre de la communauté',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Communauté non trouvée',
+  })
+  async getCommunityMessages(
+    @Param('id') communityId: string,
+    @Query() query: GetMessagesDto,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<PaginatedMessagesDto> {
+    try {
+      const getMessagesDto = {
+        ...query,
+        communityId,
+        requesterId: req.user.id,
+      };
+
+      const result = await firstValueFrom(
+        this.chatClient.send('chat.message.get', getMessagesDto),
+      );
+
+      return result;
+    } catch (error: any) {
+      if (
+        error.message?.includes('membre') ||
+        error.message?.includes('member')
+      ) {
+        throw new HttpException(
+          'Vous devez être membre de cette communauté pour consulter les messages',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      if (
+        error.message?.includes('non trouvée') ||
+        error.message?.includes('not found')
+      ) {
+        throw new HttpException('Communauté non trouvée', HttpStatus.NOT_FOUND);
+      }
+
+      throw new HttpException(
+        'Erreur interne lors de la récupération des messages',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

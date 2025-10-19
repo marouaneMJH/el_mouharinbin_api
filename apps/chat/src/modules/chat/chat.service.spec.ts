@@ -6,6 +6,8 @@ import { PrismaService } from '../../../../../libs/contract/services/prisma.serv
 import {
   SendMessageDto,
   MessageType,
+  GetMessagesDto,
+  PaginatedMessagesDto,
 } from '../../../../../libs/contract/dtos/chat';
 
 describe('ChatService', () => {
@@ -19,6 +21,7 @@ describe('ChatService', () => {
     },
     message: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
     },
     userSession: {
@@ -225,6 +228,180 @@ describe('ChatService', () => {
 
       // Assert
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('getMessages', () => {
+    const mockGetMessagesDto: GetMessagesDto = {
+      communityId: 'community-123',
+      limit: 50,
+    };
+
+    const mockMessages = [
+      {
+        id: 'message-1',
+        communityId: 'community-123',
+        userId: 'user-123',
+        username: 'testuser',
+        content: 'Test message 1',
+        messageType: 'text',
+        replyTo: null,
+        editedAt: null,
+        createdAt: new Date('2024-01-01T10:00:00Z'),
+        updatedAt: new Date('2024-01-01T10:00:00Z'),
+        deletedAt: null,
+        replyMessage: null,
+      },
+      {
+        id: 'message-2',
+        communityId: 'community-123',
+        userId: 'user-456',
+        username: 'testuser2',
+        content: 'Test message 2',
+        messageType: 'text',
+        replyTo: null,
+        editedAt: null,
+        createdAt: new Date('2024-01-01T09:00:00Z'),
+        updatedAt: new Date('2024-01-01T09:00:00Z'),
+        deletedAt: null,
+        replyMessage: null,
+      },
+    ];
+
+    it('should get messages successfully for community member', async () => {
+      // Arrange
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        mockMembership,
+      );
+      prismaService.message.findMany.mockResolvedValue(mockMessages);
+
+      // Act
+      const result = await service.getMessages(mockGetMessagesDto, 'user-123');
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.messages).toHaveLength(2);
+      expect(result.messages[0].id).toBe('message-1');
+      expect(result.messages[1].id).toBe('message-2');
+      expect(result.hasNextPage).toBe(false);
+      expect(result.hasPrevPage).toBe(false);
+      expect(result.count).toBe(2);
+      expect(result.limit).toBe(50);
+    });
+
+    it('should throw forbidden exception when user is not a member', async () => {
+      // Arrange
+      prismaService.communityMember.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        service.getMessages(mockGetMessagesDto, 'user-123'),
+      ).rejects.toThrow(
+        new HttpException(
+          'Vous devez être membre de cette communauté pour consulter les messages',
+          HttpStatus.FORBIDDEN,
+        ),
+      );
+    });
+
+    it('should handle cursor-based pagination', async () => {
+      // Arrange
+      const paginationDto = {
+        ...mockGetMessagesDto,
+        cursor: 'message-1',
+        limit: 1,
+      };
+
+      // Mock 2 messages to test hasNextPage (limit + 1)
+      const paginatedMessages = [mockMessages[1], mockMessages[0]];
+
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        mockMembership,
+      );
+      prismaService.message.findMany.mockResolvedValue(paginatedMessages);
+
+      // Act
+      const result = await service.getMessages(paginationDto, 'user-123');
+
+      // Assert
+      expect(result.hasNextPage).toBe(true);
+      expect(result.hasPrevPage).toBe(true);
+      expect(result.nextCursor).toBe('message-2');
+      expect(result.prevCursor).toBe('message-2');
+      expect(result.count).toBe(1);
+    });
+
+    it('should exclude deleted messages', async () => {
+      // Arrange
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        mockMembership,
+      );
+      prismaService.message.findMany.mockResolvedValue(mockMessages);
+
+      // Act
+      await service.getMessages(mockGetMessagesDto, 'user-123');
+
+      // Assert
+      expect(prismaService.message.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deletedAt: null,
+          }),
+        }),
+      );
+    });
+
+    it('should sort messages by creation date DESC', async () => {
+      // Arrange
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        mockMembership,
+      );
+      prismaService.message.findMany.mockResolvedValue(mockMessages);
+
+      // Act
+      await service.getMessages(mockGetMessagesDto, 'user-123');
+
+      // Assert
+      expect(prismaService.message.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: {
+            createdAt: 'desc',
+          },
+        }),
+      );
+    });
+
+    it('should apply optional filters', async () => {
+      // Arrange
+      const filteredDto: GetMessagesDto = {
+        ...mockGetMessagesDto,
+        messageType: MessageType.TEXT,
+        userId: 'user-456',
+        startDate: '2024-01-01T00:00:00Z',
+        endDate: '2024-01-01T23:59:59Z',
+      };
+
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        mockMembership,
+      );
+      prismaService.message.findMany.mockResolvedValue(mockMessages);
+
+      // Act
+      await service.getMessages(filteredDto, 'user-123');
+
+      // Assert
+      expect(prismaService.message.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            messageType: 'text',
+            userId: 'user-456',
+            createdAt: expect.objectContaining({
+              gte: new Date('2024-01-01T00:00:00Z'),
+              lte: new Date('2024-01-01T23:59:59Z'),
+            }),
+          }),
+        }),
+      );
     });
   });
 });
