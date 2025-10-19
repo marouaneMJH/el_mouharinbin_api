@@ -48,46 +48,110 @@ export class MessageController {
    */
   @Delete(':id')
   @ApiOperation({
-    summary: 'Supprimer un message',
-    description:
-      "Permet à l'auteur ou aux modérateurs de supprimer un message (suppression logique)",
+    summary: 'Delete Message',
+    description: `
+Delete a message with soft deletion (message remains in database but marked as deleted).
+
+**Authorization:**
+- Message author can delete their own messages
+- Community moderators can delete any message in their communities
+- Community owners can delete any message in their communities
+- System administrators can delete any message
+
+**Soft Deletion:**
+- Message content is replaced with "[Message deleted]"
+- Original metadata preserved for audit purposes
+- Deletion timestamp and reason recorded
+- Message ID remains valid for references
+
+**Audit Trail:**
+- Deletion reason (optional but recommended)
+- Deleted by user ID and username
+- Deletion timestamp
+- Original message preserved in audit logs
+
+**Real-time Updates:**
+- All connected community members notified via WebSocket
+- Message deletion event broadcasted via RabbitMQ
+- UI updated in real-time for all clients
+    `
   })
   @ApiParam({
     name: 'id',
-    description: 'ID du message à supprimer',
+    description: 'Message ID to delete (UUID format)',
     example: '123e4567-e89b-12d3-a456-426614174000',
+    schema: {
+      type: 'string',
+      format: 'uuid'
+    }
   })
   @ApiBody({
-    description: 'Raison de la suppression (optionnelle)',
+    description: 'Optional deletion details',
     required: false,
     schema: {
       type: 'object',
       properties: {
         reason: {
           type: 'string',
-          description: 'Raison de la suppression',
-          example: 'Contenu inapproprié',
+          description: 'Reason for message deletion (recommended for moderation)',
+          example: 'Inappropriate content - spam',
           maxLength: 500,
+          minLength: 3
         },
       },
+      example: {
+        reason: 'Content violates community guidelines'
+      }
     },
   })
   @ApiResponse({
     status: 200,
-    description: 'Message supprimé avec succès',
+    description: 'Message deleted successfully',
     type: MessageResponseDto,
-  })
-  @ApiResponse({
-    status: 403,
-    description: 'Permissions insuffisantes pour supprimer ce message',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Message non trouvé',
+    schema: {
+      example: {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        content: '[Message deleted]',
+        isDeleted: true,
+        deletedAt: '2024-01-15T14:20:00Z',
+        deletedBy: 'user-456',
+        deletedByUsername: 'moderator_user',
+        deletionReason: 'Content violates community guidelines'
+      }
+    }
   })
   @ApiResponse({
     status: 400,
-    description: 'Message déjà supprimé',
+    description: 'Message already deleted or invalid request',
+    schema: {
+      example: {
+        statusCode: 400,
+        message: 'This message has already been deleted',
+        error: 'Bad Request'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Insufficient permissions to delete this message',
+    schema: {
+      example: {
+        statusCode: 403,
+        message: 'You do not have permission to delete this message',
+        error: 'Forbidden'
+      }
+    }
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Message not found',
+    schema: {
+      example: {
+        statusCode: 404,
+        message: 'Message not found',
+        error: 'Not Found'
+      }
+    }
   })
   async deleteMessage(
     @Param('id') messageId: string,

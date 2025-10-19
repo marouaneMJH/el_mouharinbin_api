@@ -54,26 +54,81 @@ export class CommunityController {
    */
   @Post()
   @ApiOperation({
-    summary: 'Créer une nouvelle communauté',
-    description:
-      'Permet à un utilisateur authentifié de créer une nouvelle communauté. Le créateur devient automatiquement propriétaire et membre de la communauté.',
+    summary: 'Create New Community',
+    description: `
+Create a new community with the authenticated user as owner and first member.
+
+**Features:**
+- Unique community name validation
+- Automatic owner assignment to creator
+- Default community settings applied
+- Community join link generation
+- Initial community setup
+
+**Process:**
+1. Validate community name uniqueness
+2. Create community with default settings
+3. Add creator as owner and member
+4. Generate community join code/link
+5. Set up default channels/rooms
+6. Return community details
+
+**Community Settings:**
+- Public/Private visibility
+- Member join approval requirement
+- Message history access for new members
+- Community description and rules
+    `
   })
   @ApiResponse({
     status: 201,
-    description: 'Communauté créée avec succès',
+    description: 'Community created successfully',
     type: CommunityResponseDto,
+    schema: {
+      example: {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        name: 'NoFap Support Group',
+        description: 'A supportive community for NoFap journey',
+        isPublic: true,
+        memberCount: 1,
+        createdAt: '2024-01-15T10:30:00Z',
+        ownerId: 'user-123',
+        joinCode: 'NFSUPPORT2024'
+      }
+    }
   })
   @ApiResponse({
     status: 400,
-    description: 'Données invalides',
+    description: 'Invalid data - validation failed',
+    schema: {
+      example: {
+        statusCode: 400,
+        message: ['name should not be empty', 'name must be longer than 3 characters'],
+        error: 'Bad Request'
+      }
+    }
   })
   @ApiResponse({
     status: 401,
-    description: 'Non authentifié',
+    description: 'Authentication required',
+    schema: {
+      example: {
+        statusCode: 401,
+        message: 'Unauthorized',
+        error: 'Authentication token missing or invalid'
+      }
+    }
   })
   @ApiResponse({
     status: 409,
-    description: 'Une communauté avec ce nom existe déjà',
+    description: 'Community name already exists',
+    schema: {
+      example: {
+        statusCode: 409,
+        message: 'A community with this name already exists',
+        error: 'Conflict'
+      }
+    }
   })
   async createCommunity(
     @Body() createCommunityDto: CreateCommunityDto,
