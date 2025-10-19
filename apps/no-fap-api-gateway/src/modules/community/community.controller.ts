@@ -78,7 +78,7 @@ Create a new community with the authenticated user as owner and first member.
 - Member join approval requirement
 - Message history access for new members
 - Community description and rules
-    `
+    `,
   })
   @ApiResponse({
     status: 201,
@@ -93,9 +93,9 @@ Create a new community with the authenticated user as owner and first member.
         memberCount: 1,
         createdAt: '2024-01-15T10:30:00Z',
         ownerId: 'user-123',
-        joinCode: 'NFSUPPORT2024'
-      }
-    }
+        joinCode: 'NFSUPPORT2024',
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -103,10 +103,13 @@ Create a new community with the authenticated user as owner and first member.
     schema: {
       example: {
         statusCode: 400,
-        message: ['name should not be empty', 'name must be longer than 3 characters'],
-        error: 'Bad Request'
-      }
-    }
+        message: [
+          'name should not be empty',
+          'name must be longer than 3 characters',
+        ],
+        error: 'Bad Request',
+      },
+    },
   })
   @ApiResponse({
     status: 401,
@@ -115,9 +118,9 @@ Create a new community with the authenticated user as owner and first member.
       example: {
         statusCode: 401,
         message: 'Unauthorized',
-        error: 'Authentication token missing or invalid'
-      }
-    }
+        error: 'Authentication token missing or invalid',
+      },
+    },
   })
   @ApiResponse({
     status: 409,
@@ -126,9 +129,9 @@ Create a new community with the authenticated user as owner and first member.
       example: {
         statusCode: 409,
         message: 'A community with this name already exists',
-        error: 'Conflict'
-      }
-    }
+        error: 'Conflict',
+      },
+    },
   })
   async createCommunity(
     @Body() createCommunityDto: CreateCommunityDto,

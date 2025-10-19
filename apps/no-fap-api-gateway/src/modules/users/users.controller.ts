@@ -56,7 +56,7 @@ Create a new user account with comprehensive profile information.
 - Status: PENDING (requires activation)
 - Role: USER (standard user role)
 - Created timestamp: Current server time
-    `
+    `,
   })
   @ApiBearerAuth('JWT-auth')
   @ApiBody({
@@ -71,10 +71,10 @@ Create a new user account with comprehensive profile information.
           username: 'admin_user',
           firstName: 'Admin',
           lastName: 'Created',
-          phone: '+1234567890'
-        }
-      }
-    }
+          phone: '+1234567890',
+        },
+      },
+    },
   })
   @ApiResponse({ status: 201, description: 'User successfully created' })
   @ApiBadRequestResponse({ description: 'Validation failed or duplicate data' })
@@ -102,15 +102,45 @@ Retrieve paginated list of users with filtering and sorting options.
 - User directory/search functionality
 - Reporting and analytics
 - Bulk operations preparation
-    `
+    `,
   })
   @ApiBearerAuth('JWT-auth')
-  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10)' })
-  @ApiQuery({ name: 'search', required: false, type: String, description: 'Search in name, email, username' })
-  @ApiQuery({ name: 'status', required: false, enum: UserStatus, description: 'Filter by user status' })
-  @ApiQuery({ name: 'sortBy', required: false, type: String, description: 'Sort field (default: createdAt)' })
-  @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'], description: 'Sort direction' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (default: 1)',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Items per page (default: 10)',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    type: String,
+    description: 'Search in name, email, username',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: UserStatus,
+    description: 'Filter by user status',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Sort field (default: createdAt)',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort direction',
+  })
   @ApiResponse({
     status: 200,
     description: 'Users retrieved successfully',
@@ -128,9 +158,9 @@ Retrieve paginated list of users with filtering and sorting options.
               firstName: { type: 'string' },
               lastName: { type: 'string' },
               status: { type: 'string', enum: Object.values(UserStatus) },
-              createdAt: { type: 'string', format: 'date-time' }
-            }
-          }
+              createdAt: { type: 'string', format: 'date-time' },
+            },
+          },
         },
         pagination: {
           type: 'object',
@@ -138,11 +168,11 @@ Retrieve paginated list of users with filtering and sorting options.
             page: { type: 'number' },
             limit: { type: 'number' },
             total: { type: 'number' },
-            pages: { type: 'number' }
-          }
-        }
-      }
-    }
+            pages: { type: 'number' },
+          },
+        },
+      },
+    },
   })
   @ApiUnauthorizedResponse({ description: 'Authentication required' })
   findAll(@Query() params: UserQueryOptions) {
@@ -152,7 +182,7 @@ Retrieve paginated list of users with filtering and sorting options.
   @Get('count')
   @ApiOperation({
     summary: 'Count Users',
-    description: 'Get total count of users with optional filtering conditions.'
+    description: 'Get total count of users with optional filtering conditions.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiResponse({
@@ -161,9 +191,9 @@ Retrieve paginated list of users with filtering and sorting options.
     schema: {
       type: 'object',
       properties: {
-        count: { type: 'number', description: 'Total number of users' }
-      }
-    }
+        count: { type: 'number', description: 'Total number of users' },
+      },
+    },
   })
   count(@Query() where?: any) {
     return this.usersService.count(where);
@@ -172,10 +202,14 @@ Retrieve paginated list of users with filtering and sorting options.
   @Get('active')
   @ApiOperation({
     summary: 'Get Active Users',
-    description: 'Retrieve all users with ACTIVE status - fully verified and functional accounts.'
+    description:
+      'Retrieve all users with ACTIVE status - fully verified and functional accounts.',
   })
   @ApiBearerAuth('JWT-auth')
-  @ApiResponse({ status: 200, description: 'Active users retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Active users retrieved successfully',
+  })
   getActiveUsers() {
     return this.usersService.getActiveUsers();
   }
@@ -183,10 +217,14 @@ Retrieve paginated list of users with filtering and sorting options.
   @Get('pending')
   @ApiOperation({
     summary: 'Get Pending Users',
-    description: 'Retrieve all users with PENDING status - accounts awaiting email verification.'
+    description:
+      'Retrieve all users with PENDING status - accounts awaiting email verification.',
   })
   @ApiBearerAuth('JWT-auth')
-  @ApiResponse({ status: 200, description: 'Pending users retrieved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pending users retrieved successfully',
+  })
   getPendingUsers() {
     return this.usersService.getPendingUsers();
   }
@@ -216,14 +254,14 @@ Retrieve detailed information for a specific user by their unique identifier.
 - Users can view their own profile
 - Admins can view any user profile
 - Limited public information for other users
-    `
+    `,
   })
   @ApiBearerAuth('JWT-auth')
   @ApiParam({
     name: 'id',
     type: 'string',
     description: 'Unique user identifier (UUID)',
-    example: '123e4567-e89b-12d3-a456-426614174000'
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
   @ApiResponse({ status: 200, description: 'User retrieved successfully' })
   @ApiNotFoundResponse({ description: 'User not found' })
@@ -255,7 +293,7 @@ Update user information with partial data. Only provided fields will be modified
 **Security:**
 - Password changes require current password
 - Email changes trigger verification process
-    `
+    `,
   })
   @ApiBearerAuth('JWT-auth')
   @ApiParam({ name: 'id', type: 'string', description: 'User ID to update' })
@@ -281,7 +319,7 @@ Update user information with partial data. Only provided fields will be modified
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Activate User Account',
-    description: 'Change user status to ACTIVE, enabling full platform access.'
+    description: 'Change user status to ACTIVE, enabling full platform access.',
   })
   @ApiBearerAuth('JWT-auth')
   @ApiParam({ name: 'id', type: 'string', description: 'User ID to activate' })
@@ -297,10 +335,15 @@ Update user information with partial data. Only provided fields will be modified
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Deactivate User Account',
-    description: 'Change user status to INACTIVE, temporarily disabling platform access.'
+    description:
+      'Change user status to INACTIVE, temporarily disabling platform access.',
   })
   @ApiBearerAuth('JWT-auth')
-  @ApiParam({ name: 'id', type: 'string', description: 'User ID to deactivate' })
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    description: 'User ID to deactivate',
+  })
   @ApiResponse({ status: 200, description: 'User deactivated successfully' })
   @ApiUnauthorizedResponse({ description: 'Authentication required' })
   @ApiForbiddenResponse({ description: 'Administrative privileges required' })
@@ -357,7 +400,7 @@ Permanently delete a user account and all associated data.
 - Removes user from all communities
 - Deletes all user messages
 - Cancels active sessions
-    `
+    `,
   })
   @ApiBearerAuth('JWT-auth')
   @ApiParam({ name: 'id', type: 'string', description: 'User ID to delete' })

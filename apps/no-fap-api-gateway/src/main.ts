@@ -11,11 +11,13 @@ async function bootstrap() {
   const port = process.env.SERVICE_PORT || 3000;
 
   // Global validation pipe
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   // Global interceptors and filters
   app.useGlobalInterceptors(new RpcToHttpInterceptor());
@@ -36,7 +38,8 @@ async function bootstrap() {
   // Swagger Documentation Setup
   const config = new DocumentBuilder()
     .setTitle('NoFap API Gateway')
-    .setDescription(`
+    .setDescription(
+      `
 # NoFap API Gateway - Complete API Documentation
 
 This API Gateway provides comprehensive access to all NoFap platform services including:
@@ -93,7 +96,8 @@ Real-time events available through WebSocket connection:
 - WebSocket support for real-time features
 - Microservices architecture
 - Event-driven communication via RabbitMQ
-    `)
+    `,
+    )
     .setVersion('1.0.0')
     .addBearerAuth(
       {
@@ -117,7 +121,7 @@ Real-time events available through WebSocket connection:
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  
+
   // Customize Swagger UI
   SwaggerModule.setup('api/docs', app, document, {
     swaggerOptions: {
@@ -133,7 +137,9 @@ Real-time events available through WebSocket connection:
 
   await app.listen(port);
   console.log(`🚀 App is running on http://localhost:${port}`);
-  console.log(`📚 API Documentation available at http://localhost:${port}/api/docs`);
+  console.log(
+    `📚 API Documentation available at http://localhost:${port}/api/docs`,
+  );
 }
 // debug make the env files works
 // console.log('ENV:', process.env);

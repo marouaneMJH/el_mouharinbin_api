@@ -8,16 +8,16 @@ import {
   Delete,
   Logger,
 } from '@nestjs/common';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
   ApiBody,
   ApiParam,
   ApiBadRequestResponse,
   ApiUnauthorizedResponse,
   ApiNotFoundResponse,
-  ApiInternalServerErrorResponse 
+  ApiInternalServerErrorResponse,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CreateUserDto } from 'libs/contract/dtos/users/create-user.dto';
@@ -31,7 +31,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'User Login',
     description: `
 Authenticate user with email and password to receive JWT access token.
@@ -45,7 +45,7 @@ Authenticate user with email and password to receive JWT access token.
 - Returns JWT access token and user information
 - Token expires according to system configuration
 - Use token in Authorization header: "Bearer {token}"
-    `
+    `,
   })
   @ApiBody({
     type: AuthPayloadDto,
@@ -56,10 +56,10 @@ Authenticate user with email and password to receive JWT access token.
         description: 'Example of valid user login request',
         value: {
           email: 'user@example.com',
-          password: 'SecurePassword123!'
-        }
-      }
-    }
+          password: 'SecurePassword123!',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 200,
@@ -70,7 +70,7 @@ Authenticate user with email and password to receive JWT access token.
         access_token: {
           type: 'string',
           description: 'JWT access token',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
         },
         user: {
           type: 'object',
@@ -78,16 +78,16 @@ Authenticate user with email and password to receive JWT access token.
             id: { type: 'string', description: 'User unique identifier' },
             email: { type: 'string', description: 'User email address' },
             username: { type: 'string', description: 'User display name' },
-            status: { type: 'string', description: 'User account status' }
-          }
+            status: { type: 'string', description: 'User account status' },
+          },
         },
         expiresIn: {
           type: 'string',
           description: 'Token expiration time',
-          example: '24h'
-        }
-      }
-    }
+          example: '24h',
+        },
+      },
+    },
   })
   @ApiBadRequestResponse({
     description: 'Invalid request data - missing or malformed email/password',
@@ -95,14 +95,14 @@ Authenticate user with email and password to receive JWT access token.
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 400 },
-        message: { 
-          type: 'array', 
+        message: {
+          type: 'array',
           items: { type: 'string' },
-          example: ['email must be a valid email', 'password is required']
+          example: ['email must be a valid email', 'password is required'],
         },
-        error: { type: 'string', example: 'Bad Request' }
-      }
-    }
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
   })
   @ApiUnauthorizedResponse({
     description: 'Invalid credentials - email or password incorrect',
@@ -111,9 +111,9 @@ Authenticate user with email and password to receive JWT access token.
       properties: {
         statusCode: { type: 'number', example: 401 },
         message: { type: 'string', example: 'Invalid credentials' },
-        error: { type: 'string', example: 'Unauthorized' }
-      }
-    }
+        error: { type: 'string', example: 'Unauthorized' },
+      },
+    },
   })
   async login(@Body() loginPayload: AuthPayloadDto) {
     this.logger.debug(`request: ${loginPayload.email}`);
@@ -122,7 +122,7 @@ Authenticate user with email and password to receive JWT access token.
   }
 
   @Post('sign-up')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'User Registration',
     description: `
 Register a new user account in the NoFap platform.
@@ -144,7 +144,7 @@ Register a new user account in the NoFap platform.
 - Check email for activation link
 - Click activation link to activate account
 - Login with activated credentials
-    `
+    `,
   })
   @ApiBody({
     type: CreateUserDto,
@@ -152,16 +152,17 @@ Register a new user account in the NoFap platform.
     examples: {
       newUser: {
         summary: 'Complete user registration',
-        description: 'Example of new user registration with all required fields',
+        description:
+          'Example of new user registration with all required fields',
         value: {
           email: 'newuser@example.com',
           password: 'SecurePassword123!',
           username: 'newuser123',
           firstName: 'John',
-          lastName: 'Doe'
-        }
-      }
-    }
+          lastName: 'Doe',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 201,
@@ -169,9 +170,10 @@ Register a new user account in the NoFap platform.
     schema: {
       type: 'object',
       properties: {
-        message: { 
-          type: 'string', 
-          example: 'User registered successfully. Please check your email for activation link.' 
+        message: {
+          type: 'string',
+          example:
+            'User registered successfully. Please check your email for activation link.',
         },
         user: {
           type: 'object',
@@ -179,12 +181,20 @@ Register a new user account in the NoFap platform.
             id: { type: 'string', description: 'New user ID' },
             email: { type: 'string', description: 'User email' },
             username: { type: 'string', description: 'User username' },
-            status: { type: 'string', example: 'PENDING', description: 'Account status (awaiting activation)' },
-            createdAt: { type: 'string', format: 'date-time', description: 'Account creation timestamp' }
-          }
-        }
-      }
-    }
+            status: {
+              type: 'string',
+              example: 'PENDING',
+              description: 'Account status (awaiting activation)',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Account creation timestamp',
+            },
+          },
+        },
+      },
+    },
   })
   @ApiBadRequestResponse({
     description: 'Registration failed - validation errors or duplicate data',
@@ -192,25 +202,25 @@ Register a new user account in the NoFap platform.
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 400 },
-        message: { 
+        message: {
           type: 'array',
           items: { type: 'string' },
           example: [
             'email must be a valid email',
             'password must be at least 8 characters long',
-            'username is already taken'
-          ]
+            'username is already taken',
+          ],
         },
-        error: { type: 'string', example: 'Bad Request' }
-      }
-    }
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
   })
   signUp(@Body() createUserDto: CreateUserDto) {
     return this.authService.signUp(createUserDto);
   }
 
   @Get('activate/:token')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Account Activation',
     description: `
 Activate user account using activation token received via email.
@@ -232,13 +242,13 @@ Activate user account using activation token received via email.
 - Account status changes to 'ACTIVE'
 - User can login normally
 - All platform features become available
-    `
+    `,
   })
   @ApiParam({
     name: 'token',
     description: 'Account activation token received via email',
     type: 'string',
-    example: 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz'
+    example: 'abc123def456ghi789jkl012mno345pqr678stu901vwx234yz',
   })
   @ApiResponse({
     status: 200,
@@ -246,9 +256,9 @@ Activate user account using activation token received via email.
     schema: {
       type: 'object',
       properties: {
-        message: { 
-          type: 'string', 
-          example: 'Account activated successfully. You can now login.' 
+        message: {
+          type: 'string',
+          example: 'Account activated successfully. You can now login.',
         },
         user: {
           type: 'object',
@@ -256,12 +266,20 @@ Activate user account using activation token received via email.
             id: { type: 'string', description: 'User ID' },
             email: { type: 'string', description: 'User email' },
             username: { type: 'string', description: 'User username' },
-            status: { type: 'string', example: 'ACTIVE', description: 'Updated account status' },
-            activatedAt: { type: 'string', format: 'date-time', description: 'Activation timestamp' }
-          }
-        }
-      }
-    }
+            status: {
+              type: 'string',
+              example: 'ACTIVE',
+              description: 'Updated account status',
+            },
+            activatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Activation timestamp',
+            },
+          },
+        },
+      },
+    },
   })
   @ApiBadRequestResponse({
     description: 'Invalid or expired activation token',
@@ -269,10 +287,13 @@ Activate user account using activation token received via email.
       type: 'object',
       properties: {
         statusCode: { type: 'number', example: 400 },
-        message: { type: 'string', example: 'Invalid or expired activation token' },
-        error: { type: 'string', example: 'Bad Request' }
-      }
-    }
+        message: {
+          type: 'string',
+          example: 'Invalid or expired activation token',
+        },
+        error: { type: 'string', example: 'Bad Request' },
+      },
+    },
   })
   @ApiNotFoundResponse({
     description: 'Activation token not found or already used',
@@ -281,9 +302,9 @@ Activate user account using activation token received via email.
       properties: {
         statusCode: { type: 'number', example: 404 },
         message: { type: 'string', example: 'Activation token not found' },
-        error: { type: 'string', example: 'Not Found' }
-      }
-    }
+        error: { type: 'string', example: 'Not Found' },
+      },
+    },
   })
   async activateAccount(@Param('token') token: string) {
     return await this.authService.activateAccount(token);

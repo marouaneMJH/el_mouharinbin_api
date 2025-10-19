@@ -74,7 +74,7 @@ Delete a message with soft deletion (message remains in database but marked as d
 - All connected community members notified via WebSocket
 - Message deletion event broadcasted via RabbitMQ
 - UI updated in real-time for all clients
-    `
+    `,
   })
   @ApiParam({
     name: 'id',
@@ -82,8 +82,8 @@ Delete a message with soft deletion (message remains in database but marked as d
     example: '123e4567-e89b-12d3-a456-426614174000',
     schema: {
       type: 'string',
-      format: 'uuid'
-    }
+      format: 'uuid',
+    },
   })
   @ApiBody({
     description: 'Optional deletion details',
@@ -93,15 +93,16 @@ Delete a message with soft deletion (message remains in database but marked as d
       properties: {
         reason: {
           type: 'string',
-          description: 'Reason for message deletion (recommended for moderation)',
+          description:
+            'Reason for message deletion (recommended for moderation)',
           example: 'Inappropriate content - spam',
           maxLength: 500,
-          minLength: 3
+          minLength: 3,
         },
       },
       example: {
-        reason: 'Content violates community guidelines'
-      }
+        reason: 'Content violates community guidelines',
+      },
     },
   })
   @ApiResponse({
@@ -116,9 +117,9 @@ Delete a message with soft deletion (message remains in database but marked as d
         deletedAt: '2024-01-15T14:20:00Z',
         deletedBy: 'user-456',
         deletedByUsername: 'moderator_user',
-        deletionReason: 'Content violates community guidelines'
-      }
-    }
+        deletionReason: 'Content violates community guidelines',
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -127,9 +128,9 @@ Delete a message with soft deletion (message remains in database but marked as d
       example: {
         statusCode: 400,
         message: 'This message has already been deleted',
-        error: 'Bad Request'
-      }
-    }
+        error: 'Bad Request',
+      },
+    },
   })
   @ApiResponse({
     status: 403,
@@ -138,9 +139,9 @@ Delete a message with soft deletion (message remains in database but marked as d
       example: {
         statusCode: 403,
         message: 'You do not have permission to delete this message',
-        error: 'Forbidden'
-      }
-    }
+        error: 'Forbidden',
+      },
+    },
   })
   @ApiResponse({
     status: 404,
@@ -149,9 +150,9 @@ Delete a message with soft deletion (message remains in database but marked as d
       example: {
         statusCode: 404,
         message: 'Message not found',
-        error: 'Not Found'
-      }
-    }
+        error: 'Not Found',
+      },
+    },
   })
   async deleteMessage(
     @Param('id') messageId: string,
