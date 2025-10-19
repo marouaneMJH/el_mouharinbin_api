@@ -1,4 +1,10 @@
-import { Injectable, HttpException, HttpStatus, Logger, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  HttpException,
+  HttpStatus,
+  Logger,
+  Inject,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { ClientProxy } from '@nestjs/microservices';
 import { PrismaService } from '../../../../../libs/contract/services/prisma.service';
@@ -12,7 +18,7 @@ import { MessageCreatedEvent } from '../../../../../libs/contract/interfaces/cha
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  
+
   constructor(
     private readonly prisma: PrismaService,
     @Inject('CHAT_EVENT_CLIENT') private readonly eventClient: ClientProxy,
@@ -48,11 +54,13 @@ export class ChatService {
    * @param sendMessageDto - Données du message à envoyer
    * @returns Le message créé
    */
-  async sendMessage(sendMessageDto: SendMessageDto): Promise<MessageResponseDto> {
-    this.logger.debug(
-      'Envoi du message avec les données:',
-      { ...sendMessageDto, content: sendMessageDto.content.substring(0, 50) + '...' },
-    );
+  async sendMessage(
+    sendMessageDto: SendMessageDto,
+  ): Promise<MessageResponseDto> {
+    this.logger.debug('Envoi du message avec les données:', {
+      ...sendMessageDto,
+      content: sendMessageDto.content.substring(0, 50) + '...',
+    });
 
     // Vérifier si l'utilisateur est membre de la communauté
     const membership = await this.prisma.communityMember.findUnique({
@@ -100,7 +108,7 @@ export class ChatService {
 
       if (!replyMessage) {
         throw new HttpException(
-          'Le message auquel vous tentez de répondre n\'existe pas',
+          "Le message auquel vous tentez de répondre n'existe pas",
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -138,21 +146,23 @@ export class ChatService {
       content: message.content,
       messageType: message.messageType as any,
       replyTo: message.replyTo || undefined,
-      replyMessage: message.replyMessage ? {
-        id: message.replyMessage.id,
-        communityId: message.replyMessage.communityId,
-        userId: message.replyMessage.userId,
-        username: message.replyMessage.username,
-        content: message.replyMessage.content,
-        messageType: message.replyMessage.messageType as any,
-        replyTo: message.replyMessage.replyTo || undefined,
-        editedAt: message.replyMessage.editedAt || undefined,
-        createdAt: message.replyMessage.createdAt,
-        updatedAt: message.replyMessage.updatedAt,
-        deletedAt: message.replyMessage.deletedAt || undefined,
-        isEdited: !!message.replyMessage.editedAt,
-        isDeleted: !!message.replyMessage.deletedAt,
-      } : undefined,
+      replyMessage: message.replyMessage
+        ? {
+            id: message.replyMessage.id,
+            communityId: message.replyMessage.communityId,
+            userId: message.replyMessage.userId,
+            username: message.replyMessage.username,
+            content: message.replyMessage.content,
+            messageType: message.replyMessage.messageType as any,
+            replyTo: message.replyMessage.replyTo || undefined,
+            editedAt: message.replyMessage.editedAt || undefined,
+            createdAt: message.replyMessage.createdAt,
+            updatedAt: message.replyMessage.updatedAt,
+            deletedAt: message.replyMessage.deletedAt || undefined,
+            isEdited: !!message.replyMessage.editedAt,
+            isDeleted: !!message.replyMessage.deletedAt,
+          }
+        : undefined,
       editedAt: message.editedAt || undefined,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,

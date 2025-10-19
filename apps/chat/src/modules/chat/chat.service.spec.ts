@@ -3,7 +3,10 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ChatService } from './chat.service';
 import { PrismaService } from '../../../../../libs/contract/services/prisma.service';
-import { SendMessageDto, MessageType } from '../../../../../libs/contract/dtos/chat';
+import {
+  SendMessageDto,
+  MessageType,
+} from '../../../../../libs/contract/dtos/chat';
 
 describe('ChatService', () => {
   let service: ChatService;
@@ -92,7 +95,9 @@ describe('ChatService', () => {
 
     it('should send a message successfully', async () => {
       // Arrange
-      prismaService.communityMember.findUnique.mockResolvedValue(mockMembership);
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        mockMembership,
+      );
       prismaService.message.create.mockResolvedValue(mockMessage);
 
       // Act
@@ -104,7 +109,10 @@ describe('ChatService', () => {
       expect(result.content).toBe(mockMessage.content);
       expect(result.userId).toBe(mockMessage.userId);
       expect(result.communityId).toBe(mockMessage.communityId);
-      expect(eventClient.emit).toHaveBeenCalledWith('chat.message.created', expect.any(Object));
+      expect(eventClient.emit).toHaveBeenCalledWith(
+        'chat.message.created',
+        expect.any(Object),
+      );
     });
 
     it('should throw forbidden exception when user is not a member', async () => {
@@ -127,11 +135,16 @@ describe('ChatService', () => {
         isBanned: true,
         bannedUntil: new Date(Date.now() + 24 * 60 * 60 * 1000), // Banned for 24h
       };
-      prismaService.communityMember.findUnique.mockResolvedValue(bannedMembership);
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        bannedMembership,
+      );
 
       // Act & Assert
       await expect(service.sendMessage(mockSendMessageDto)).rejects.toThrow(
-        new HttpException('Vous êtes banni de cette communauté', HttpStatus.FORBIDDEN),
+        new HttpException(
+          'Vous êtes banni de cette communauté',
+          HttpStatus.FORBIDDEN,
+        ),
       );
     });
 
@@ -142,7 +155,9 @@ describe('ChatService', () => {
         isBanned: true,
         bannedUntil: new Date(Date.now() - 24 * 60 * 60 * 1000), // Ban expired 24h ago
       };
-      prismaService.communityMember.findUnique.mockResolvedValue(expiredBanMembership);
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        expiredBanMembership,
+      );
       prismaService.message.create.mockResolvedValue(mockMessage);
 
       // Act
@@ -159,7 +174,9 @@ describe('ChatService', () => {
         ...mockSendMessageDto,
         replyTo: 'non-existent-message',
       };
-      prismaService.communityMember.findUnique.mockResolvedValue(mockMembership);
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        mockMembership,
+      );
       prismaService.message.findFirst.mockResolvedValue(null);
 
       // Act & Assert
@@ -185,16 +202,19 @@ describe('ChatService', () => {
 
     it('should sanitize content for XSS prevention', async () => {
       // Arrange
-      const xssContent = '<script>alert("xss")</script>Hello <iframe src="evil"></iframe>';
+      const xssContent =
+        '<script>alert("xss")</script>Hello <iframe src="evil"></iframe>';
       const maliciousDto = {
         ...mockSendMessageDto,
         content: xssContent,
       };
-      
+
       // Note: The actual sanitization happens in the DTO Transform decorator
       // This test would need to be done at the controller/integration level
       // Here we just verify the service handles any content
-      prismaService.communityMember.findUnique.mockResolvedValue(mockMembership);
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        mockMembership,
+      );
       prismaService.message.create.mockResolvedValue({
         ...mockMessage,
         content: 'Hello ', // Sanitized content

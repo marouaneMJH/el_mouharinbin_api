@@ -73,8 +73,12 @@ export class SendMessageDto {
    */
   @IsString()
   @IsNotEmpty()
-  @MinLength(2, { message: "Le nom d'utilisateur doit contenir au moins 2 caractères" })
-  @MaxLength(50, { message: "Le nom d'utilisateur ne peut pas dépasser 50 caractères" })
+  @MinLength(2, {
+    message: "Le nom d'utilisateur doit contenir au moins 2 caractères",
+  })
+  @MaxLength(50, {
+    message: "Le nom d'utilisateur ne peut pas dépasser 50 caractères",
+  })
   username: string;
 
   /**
