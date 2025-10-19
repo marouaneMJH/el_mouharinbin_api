@@ -486,10 +486,7 @@ export class CommunityService {
       });
 
       if (!community) {
-        throw new HttpException(
-          'Communauté non trouvée',
-          HttpStatus.NOT_FOUND,
-        );
+        throw new HttpException('Communauté non trouvée', HttpStatus.NOT_FOUND);
       }
 
       // Vérifier si l'utilisateur est déjà membre
@@ -560,6 +557,136 @@ export class CommunityService {
       console.error('Erreur lors de la jonction à la communauté:', error);
       throw new HttpException(
         'Erreur interne lors de la jonction à la communauté',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Quitter une communauté existante
+   * @param communityId - ID de la communauté à quitter
+   * @param userId - ID de l'utilisateur qui veut quitter
+   * @param userEmail - Email de l'utilisateur (pour l'événement)
+   * @returns Informations de sortie
+   */
+  async leaveCommunity(
+    communityId: string,
+    userId: string,
+    userEmail: string,
+  ): Promise<{
+    message: string;
+    communityId: string;
+    userId: string;
+    leftAt: string;
+  }> {
+    try {
+      // Vérifier si la communauté existe
+      const community = await this.prisma.community.findUnique({
+        where: { id: communityId },
+        include: {
+          members: {
+            select: {
+              userId: true,
+              role: true,
+            },
+          },
+          _count: {
+            select: { members: true },
+          },
+        },
+      });
+
+      if (!community) {
+        throw new HttpException(
+          'Communauté non trouvée',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      // Vérifier si l'utilisateur est membre
+      const userMembership = await this.prisma.communityMember.findUnique({
+        where: {
+          communityId_userId: {
+            communityId,
+            userId,
+          },
+        },
+      });
+
+      if (!userMembership) {
+        throw new HttpException(
+          'Vous n\'êtes pas membre de cette communauté',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Vérifier les conditions de sortie pour le propriétaire
+      if (userMembership.role === 'owner') {
+        // Le propriétaire peut quitter si:
+        // 1. La communauté est vide (lui seul)
+        // 2. Il existe au moins un autre admin
+        
+        if (community._count.members > 1) {
+          const hasOtherAdmin = community.members.some(
+            member => 
+              member.userId !== userId && 
+              (member.role === 'admin' || member.role === 'owner')
+          );
+
+          if (!hasOtherAdmin) {
+            throw new HttpException(
+              'Le propriétaire ne peut pas quitter une communauté avec des membres sans désigner un autre admin',
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+        }
+      }
+
+      // Supprimer le membership
+      await this.prisma.communityMember.delete({
+        where: {
+          communityId_userId: {
+            communityId,
+            userId,
+          },
+        },
+      });
+
+      const leftAt = new Date();
+
+      // TODO: Publier l'événement RabbitMQ (chat.user.left)
+      // Cette partie sera implémentée quand le service d'événements sera disponible
+      /*
+      try {
+        await this.eventService.publishUserLeftEvent({
+          communityId,
+          userId,
+          userEmail,
+          communityName: community.name,
+          leftAt,
+          wasOwner: userMembership.role === 'owner',
+        });
+      } catch (eventError) {
+        console.warn('Erreur lors de la publication de l\'événement:', eventError);
+        // Ne pas faire échouer la sortie pour un problème d'événement
+      }
+      */
+
+      return {
+        message: 'Vous avez quitté la communauté avec succès',
+        communityId,
+        userId,
+        leftAt: leftAt.toISOString(),
+      };
+    } catch (error) {
+      // Re-throw HttpExceptions as-is
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      console.error('Erreur lors de la sortie de la communauté:', error);
+      throw new HttpException(
+        'Erreur interne lors de la sortie de la communauté',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

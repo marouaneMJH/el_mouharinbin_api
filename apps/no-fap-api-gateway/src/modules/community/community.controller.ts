@@ -290,7 +290,10 @@ export class CommunityController {
     schema: {
       type: 'object',
       properties: {
-        message: { type: 'string', example: 'Vous avez rejoint la communauté avec succès' },
+        message: {
+          type: 'string',
+          example: 'Vous avez rejoint la communauté avec succès',
+        },
         communityId: { type: 'string', format: 'uuid' },
         userId: { type: 'string', format: 'uuid' },
         membershipStatus: { type: 'string', example: 'MEMBER' },
@@ -304,12 +307,12 @@ export class CommunityController {
     schema: {
       type: 'object',
       properties: {
-        message: { 
-          type: 'string', 
+        message: {
+          type: 'string',
           examples: [
             'Vous êtes déjà membre de cette communauté',
-            'La communauté a atteint le nombre maximum de membres'
-          ]
+            'La communauté a atteint le nombre maximum de membres',
+          ],
         },
         statusCode: { type: 'number', example: 400 },
       },
@@ -365,9 +368,130 @@ export class CommunityController {
         );
       }
 
-      if (error.message?.includes('pleine') || error.message?.includes('maximum')) {
+      if (
+        error.message?.includes('pleine') ||
+        error.message?.includes('maximum')
+      ) {
         throw new HttpException(
           'La communauté a atteint le nombre maximum de membres',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (
+        error.message?.includes('non trouvée') ||
+        error.message?.includes('not found')
+      ) {
+        throw new HttpException('Communauté non trouvée', HttpStatus.NOT_FOUND);
+      }
+
+      throw new HttpException(
+        'Erreur interne lors de la jonction à la communauté',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Quitter une communauté
+   * En tant qu'utilisateur membre d'une communauté
+   * Je veux quitter la communauté
+   * Afin de ne plus recevoir les messages
+   */
+  @Post(':id/leave')
+  @ApiOperation({
+    summary: 'Quitter une communauté',
+    description:
+      "Permet à un utilisateur authentifié de quitter une communauté dont il est membre. Le propriétaire peut quitter uniquement si un autre admin existe ou si la communauté est vide.",
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Identifiant unique de la communauté à quitter',
+    type: 'string',
+    format: 'uuid',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Utilisateur retiré de la communauté avec succès',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Vous avez quitté la communauté avec succès' },
+        communityId: { type: 'string', format: 'uuid' },
+        userId: { type: 'string', format: 'uuid' },
+        leftAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Utilisateur non membre ou conditions de sortie non respectées',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { 
+          type: 'string', 
+          examples: [
+            'Vous n\'êtes pas membre de cette communauté',
+            'Le propriétaire ne peut pas quitter une communauté avec des membres sans désigner un autre admin'
+          ]
+        },
+        statusCode: { type: 'number', example: 400 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Communauté non trouvée',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Communauté non trouvée' },
+        statusCode: { type: 'number', example: 404 },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Non authentifié',
+  })
+  async leaveCommunity(
+    @Param('id') communityId: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<{
+    message: string;
+    communityId: string;
+    userId: string;
+    leftAt: string;
+  }> {
+    try {
+      const result = await firstValueFrom(
+        this.chatClient.send('community.leave', {
+          communityId,
+          userId: req.user.id,
+          userEmail: req.user.email,
+        }),
+      );
+
+      return result;
+    } catch (error) {
+      console.error('Erreur lors de la sortie de la communauté:', error);
+
+      if (error.statusCode) {
+        throw new HttpException(error.message, error.statusCode);
+      }
+
+      // Map specific errors
+      if (error.message?.includes('pas membre') || error.message?.includes('not a member')) {
+        throw new HttpException(
+          'Vous n\'êtes pas membre de cette communauté',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      if (error.message?.includes('propriétaire') || error.message?.includes('owner')) {
+        throw new HttpException(
+          'Le propriétaire ne peut pas quitter une communauté avec des membres sans désigner un autre admin',
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -380,7 +504,7 @@ export class CommunityController {
       }
 
       throw new HttpException(
-        'Erreur interne lors de la jonction à la communauté',
+        'Erreur interne lors de la sortie de la communauté',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

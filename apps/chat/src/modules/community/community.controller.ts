@@ -118,4 +118,28 @@ export class CommunityController {
       throw error;
     }
   }
+
+  /**
+   * Gestionnaire RabbitMQ pour quitter une communauté
+   */
+  @MessagePattern('community.leave')
+  async handleLeaveCommunity(data: {
+    communityId: string;
+    userId: string;
+    userEmail: string;
+  }) {
+    try {
+      return await this.communityService.leaveCommunity(
+        data.communityId,
+        data.userId,
+        data.userEmail,
+      );
+    } catch (error) {
+      console.error(
+        'Erreur RabbitMQ lors de la sortie de la communauté:',
+        error,
+      );
+      throw error;
+    }
+  }
 }
