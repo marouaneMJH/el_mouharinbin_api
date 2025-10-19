@@ -5,6 +5,7 @@ import { PrismaService } from '../../../../../libs/contract/services/prisma.serv
 import {
   CreateCommunityDto,
   Role,
+  GetMembersDto,
 } from '../../../../../libs/contract/dtos/chat';
 
 describe('CommunityService', () => {
@@ -18,6 +19,12 @@ describe('CommunityService', () => {
     },
     communityMember: {
       create: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
+    },
+    userSession: {
+      findMany: jest.fn(),
     },
     $transaction: jest.fn(),
   };
@@ -262,6 +269,238 @@ describe('CommunityService', () => {
 
       expect(result.isMember).toBe(false);
       expect(result.userRole).toBeUndefined();
+    });
+  });
+
+  describe('getCommunityMembers', () => {
+    const communityId = 'community-123';
+    const userId = 'user-123';
+    const getMembersDto: GetMembersDto = {
+      communityId,
+      limit: 10,
+      offset: 0,
+    };
+
+    it('devrait retourner la liste des membres pour un utilisateur membre', async () => {
+      const mockCommunity = {
+        id: communityId,
+        name: 'Test Community',
+      };
+
+      const mockUserMembership = {
+        id: 'membership-123',
+        communityId,
+        userId,
+        role: 'member',
+      };
+
+      const mockMembers = [
+        {
+          id: 'member-1',
+          communityId,
+          userId: 'user-1',
+          joinedAt: new Date(),
+          role: 'owner',
+          isBanned: false,
+          bannedUntil: null,
+          community: { sessions: [] },
+        },
+        {
+          id: 'member-2',
+          communityId,
+          userId: 'user-2',
+          joinedAt: new Date(),
+          role: 'member',
+          isBanned: false,
+          bannedUntil: null,
+          community: { sessions: [] },
+        },
+      ];
+
+      const mockActiveSessions = [
+        {
+          userId: 'user-1',
+          lastActivity: new Date(),
+        },
+      ];
+
+      mockPrismaService.community.findUnique.mockResolvedValueOnce(
+        mockCommunity,
+      );
+      mockPrismaService.communityMember.findFirst.mockResolvedValueOnce(
+        mockUserMembership,
+      );
+      mockPrismaService.communityMember.count.mockResolvedValueOnce(2);
+      mockPrismaService.communityMember.findMany.mockResolvedValueOnce(
+        mockMembers,
+      );
+      mockPrismaService.userSession.findMany.mockResolvedValueOnce(
+        mockActiveSessions,
+      );
+
+      const result = await service.getCommunityMembers(
+        communityId,
+        userId,
+        getMembersDto,
+      );
+
+      expect(result).toMatchObject({
+        total: 2,
+        count: 2,
+        limit: 10,
+        offset: 0,
+        hasNext: false,
+        hasPrevious: false,
+      });
+      expect(result.members).toHaveLength(2);
+      expect(result.members[0]).toMatchObject({
+        id: 'member-1',
+        communityId,
+        userId: 'user-1',
+        role: Role.OWNER,
+        isBanned: false,
+        isOnline: true,
+      });
+      expect(result.members[1]).toMatchObject({
+        id: 'member-2',
+        communityId,
+        userId: 'user-2',
+        role: Role.MEMBER,
+        isBanned: false,
+        isOnline: false,
+      });
+
+      expect(mockPrismaService.community.findUnique).toHaveBeenCalledWith({
+        where: { id: communityId },
+      });
+      expect(mockPrismaService.communityMember.findFirst).toHaveBeenCalledWith({
+        where: { AND: [{ communityId }, { userId }] },
+      });
+    });
+
+    it('devrait rejeter un utilisateur non-membre', async () => {
+      const mockCommunity = {
+        id: communityId,
+        name: 'Test Community',
+      };
+
+      mockPrismaService.community.findUnique.mockResolvedValueOnce(
+        mockCommunity,
+      );
+      mockPrismaService.communityMember.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.getCommunityMembers(communityId, userId, getMembersDto),
+      ).rejects.toThrow(
+        new HttpException(
+          'Vous devez être membre de cette communauté pour voir la liste des membres',
+          HttpStatus.FORBIDDEN,
+        ),
+      );
+    });
+
+    it('devrait lever une erreur pour une communauté inexistante', async () => {
+      mockPrismaService.community.findUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        service.getCommunityMembers(communityId, userId, getMembersDto),
+      ).rejects.toThrow(
+        new HttpException('Communauté non trouvée', HttpStatus.NOT_FOUND),
+      );
+    });
+
+    it('devrait filtrer les membres par rôle', async () => {
+      const getMembersDtoWithRole: GetMembersDto = {
+        ...getMembersDto,
+        role: Role.MEMBER,
+      };
+
+      const mockCommunity = {
+        id: communityId,
+        name: 'Test Community',
+      };
+
+      const mockUserMembership = {
+        id: 'membership-123',
+        communityId,
+        userId,
+        role: 'member',
+      };
+
+      mockPrismaService.community.findUnique.mockResolvedValueOnce(
+        mockCommunity,
+      );
+      mockPrismaService.communityMember.findFirst.mockResolvedValueOnce(
+        mockUserMembership,
+      );
+      mockPrismaService.communityMember.count.mockResolvedValueOnce(1);
+      mockPrismaService.communityMember.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.userSession.findMany.mockResolvedValueOnce([]);
+
+      await service.getCommunityMembers(
+        communityId,
+        userId,
+        getMembersDtoWithRole,
+      );
+
+      expect(mockPrismaService.communityMember.count).toHaveBeenCalledWith({
+        where: {
+          communityId,
+          role: 'member',
+        },
+      });
+    });
+
+    it('devrait supporter la pagination', async () => {
+      const getMembersDtoWithPagination: GetMembersDto = {
+        ...getMembersDto,
+        limit: 5,
+        offset: 10,
+      };
+
+      const mockCommunity = {
+        id: communityId,
+        name: 'Test Community',
+      };
+
+      const mockUserMembership = {
+        id: 'membership-123',
+        communityId,
+        userId,
+        role: 'member',
+      };
+
+      mockPrismaService.community.findUnique.mockResolvedValueOnce(
+        mockCommunity,
+      );
+      mockPrismaService.communityMember.findFirst.mockResolvedValueOnce(
+        mockUserMembership,
+      );
+      mockPrismaService.communityMember.count.mockResolvedValueOnce(25);
+      mockPrismaService.communityMember.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.userSession.findMany.mockResolvedValueOnce([]);
+
+      const result = await service.getCommunityMembers(
+        communityId,
+        userId,
+        getMembersDtoWithPagination,
+      );
+
+      expect(result).toMatchObject({
+        total: 25,
+        count: 0,
+        limit: 5,
+        offset: 10,
+        hasNext: true,
+        hasPrevious: true,
+      });
+
+      expect(mockPrismaService.communityMember.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 5,
+          skip: 10,
+        }),
+      );
     });
   });
 });

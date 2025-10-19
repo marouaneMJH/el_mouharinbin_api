@@ -274,3 +274,43 @@ export class MemberStatsDto {
    */
   newMembersThisWeek: number;
 }
+
+/**
+ * DTO de réponse paginée pour les membres d'une communauté
+ */
+export class PaginatedMembersDto {
+  /**
+   * Liste des membres
+   */
+  members: CommunityMemberResponseDto[];
+
+  /**
+   * Nombre total de membres dans la communauté
+   */
+  total: number;
+
+  /**
+   * Nombre de membres dans cette page
+   */
+  count: number;
+
+  /**
+   * Limite utilisée pour cette requête
+   */
+  limit: number;
+
+  /**
+   * Offset utilisé pour cette requête
+   */
+  offset: number;
+
+  /**
+   * Indique s'il y a une page suivante
+   */
+  hasNext: boolean;
+
+  /**
+   * Indique s'il y a une page précédente
+   */
+  hasPrevious: boolean;
+}

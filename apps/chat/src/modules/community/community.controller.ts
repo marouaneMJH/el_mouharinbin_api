@@ -6,6 +6,8 @@ import {
   CommunityDetailResponseDto,
   CommunityPaginationDto,
   PaginatedCommunitiesDto,
+  GetMembersDto,
+  PaginatedMembersDto,
 } from '../../../../../libs/contract/dtos/chat';
 
 @Controller()
@@ -141,6 +143,30 @@ export class CommunityController {
     } catch (error) {
       console.error(
         'Erreur RabbitMQ lors de la sortie de la communauté:',
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Gestionnaire RabbitMQ pour obtenir les membres d'une communauté
+   */
+  @MessagePattern('community.getMembers')
+  async handleGetCommunityMembers(data: {
+    communityId: string;
+    userId: string;
+    getMembersDto: GetMembersDto;
+  }): Promise<PaginatedMembersDto> {
+    try {
+      return await this.communityService.getCommunityMembers(
+        data.communityId,
+        data.userId,
+        data.getMembersDto,
+      );
+    } catch (error) {
+      console.error(
+        'Erreur RabbitMQ lors de la récupération des membres de la communauté:',
         error,
       );
       throw error;

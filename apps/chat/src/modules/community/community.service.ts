@@ -7,6 +7,9 @@ import {
   CommunityPaginationDto,
   PaginatedCommunitiesDto,
   Role,
+  GetMembersDto,
+  CommunityMemberResponseDto,
+  PaginatedMembersDto,
 } from '../../../../../libs/contract/dtos/chat';
 
 @Injectable()
@@ -702,6 +705,172 @@ export class CommunityService {
       console.error('Erreur lors de la sortie de la communauté:', error);
       throw new HttpException(
         'Erreur interne lors de la sortie de la communauté',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Récupérer les membres d'une communauté avec pagination
+   * @param communityId - ID de la communauté
+   * @param userId - ID de l'utilisateur qui fait la demande (pour vérifier l'appartenance)
+   * @param getMembersDto - Paramètres de pagination et filtres
+   * @returns Liste paginée des membres avec leurs informations
+   */
+  async getCommunityMembers(
+    communityId: string,
+    userId: string,
+    getMembersDto: GetMembersDto,
+  ): Promise<PaginatedMembersDto> {
+    try {
+      // Vérifier si la communauté existe
+      const community = await this.prisma.community.findUnique({
+        where: { id: communityId },
+      });
+
+      if (!community) {
+        throw new HttpException('Communauté non trouvée', HttpStatus.NOT_FOUND);
+      }
+
+      // Vérifier si l'utilisateur est membre de la communauté
+      const userMembership = await this.prisma.communityMember.findFirst({
+        where: {
+          AND: [{ communityId }, { userId }],
+        },
+      });
+
+      if (!userMembership) {
+        throw new HttpException(
+          'Vous devez être membre de cette communauté pour voir la liste des membres',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      const { limit = 50, offset = 0, role, isBanned, isOnline } = getMembersDto;
+
+      // Construire les filtres
+      const whereClause: any = {
+        communityId,
+      };
+
+      if (role) {
+        whereClause.role = role.toLowerCase();
+      }
+
+      if (typeof isBanned === 'boolean') {
+        whereClause.isBanned = isBanned;
+      }
+
+      // Compter le nombre total de membres avec les filtres
+      const total = await this.prisma.communityMember.count({
+        where: whereClause,
+      });
+
+      // Récupérer les membres avec pagination
+      const members = await this.prisma.communityMember.findMany({
+        where: whereClause,
+        include: {
+          // Récupérer les sessions utilisateur pour déterminer le statut en ligne et la dernière activité
+          community: {
+            select: {
+              sessions: {
+                where: {
+                  userId: { in: [] }, // Will be populated below
+                  isActive: true,
+                },
+                select: {
+                  userId: true,
+                  lastActivity: true,
+                  isActive: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [
+          { role: 'asc' }, // Propriétaires et admins en premier
+          { joinedAt: 'desc' }, // Plus récents en premier
+        ],
+        take: limit,
+        skip: offset,
+      });
+
+      // Récupérer les sessions actives pour tous les membres
+      const memberUserIds = members.map((member) => member.userId);
+      const activeSessions = await this.prisma.userSession.findMany({
+        where: {
+          userId: { in: memberUserIds },
+          isActive: true,
+        },
+        select: {
+          userId: true,
+          lastActivity: true,
+        },
+        orderBy: {
+          lastActivity: 'desc',
+        },
+      });
+
+      // Créer un map pour un accès rapide aux dernières activités
+      const lastActivityMap = new Map<string, Date>();
+      const onlineUserIds = new Set<string>();
+
+      activeSessions.forEach((session) => {
+        if (!lastActivityMap.has(session.userId)) {
+          lastActivityMap.set(session.userId, session.lastActivity);
+        }
+        onlineUserIds.add(session.userId);
+      });
+
+      // Mapper les membres vers le DTO de réponse
+      const memberDtos: CommunityMemberResponseDto[] = members
+        .filter((member) => {
+          // Filtrer par statut en ligne si spécifié
+          if (typeof isOnline === 'boolean') {
+            return isOnline === onlineUserIds.has(member.userId);
+          }
+          return true;
+        })
+        .map((member) => ({
+          id: member.id,
+          communityId: member.communityId,
+          userId: member.userId,
+          // Note: username et avatarUrl nécessiteraient un join avec la table User
+          // Pour l'instant, on les laisse undefined car ils ne sont pas disponibles dans le schéma actuel
+          username: undefined,
+          avatarUrl: undefined,
+          joinedAt: member.joinedAt,
+          role: this.mapDbRoleToEnum(member.role),
+          isBanned: member.isBanned,
+          bannedUntil: member.bannedUntil || undefined,
+          isOnline: onlineUserIds.has(member.userId),
+          lastActivity: lastActivityMap.get(member.userId),
+        }));
+
+      // Construire la réponse paginée
+      const response: PaginatedMembersDto = {
+        members: memberDtos,
+        total,
+        count: memberDtos.length,
+        limit,
+        offset,
+        hasNext: offset + limit < total,
+        hasPrevious: offset > 0,
+      };
+
+      return response;
+    } catch (error) {
+      // Re-throw HttpExceptions as-is
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      this.logger.error(
+        'Erreur lors de la récupération des membres de la communauté:',
+        error,
+      );
+      throw new HttpException(
+        'Erreur interne lors de la récupération des membres',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

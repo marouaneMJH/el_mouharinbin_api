@@ -155,7 +155,7 @@ export const CHAT_MESSAGE_PATTERNS = {
   UPDATE_MEMBER_ROLE: 'chat.member.update_role',
   BAN_MEMBER: 'chat.member.ban',
   UNBAN_MEMBER: 'chat.member.unban',
-  GET_MEMBERS: 'chat.member.get',
+  GET_MEMBERS: 'community.getMembers',
 
   // Sessions
   CONNECT_SOCKET: 'chat.session.connect',

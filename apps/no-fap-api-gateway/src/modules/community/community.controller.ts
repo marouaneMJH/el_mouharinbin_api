@@ -27,6 +27,8 @@ import {
   CommunityDetailResponseDto,
   CommunityPaginationDto,
   PaginatedCommunitiesDto,
+  GetMembersDto,
+  PaginatedMembersDto,
 } from '../../../../../libs/contract/dtos/chat';
 import { JwtAuthGuard } from '../../../../../libs/contract/guards/jwt.guard';
 import JwtPayloadI from '../../../../../libs/contract/interfaces/jwt-paylaod.interface';
@@ -514,6 +516,127 @@ export class CommunityController {
 
       throw new HttpException(
         'Erreur interne lors de la sortie de la communauté',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Récupérer la liste des membres d'une communauté
+   * Seuls les membres peuvent voir cette liste
+   */
+  @Get(':id/members')
+  @ApiOperation({
+    summary: 'Lister les membres d\'une communauté',
+    description:
+      'Récupère la liste des membres d\'une communauté avec pagination. Seuls les membres de la communauté peuvent accéder à cette liste. Les informations incluent le rôle, la date d\'adhésion et le statut en ligne.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID de la communauté',
+    type: String,
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Nombre maximum de membres à retourner (1-100)',
+    example: 50,
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    type: Number,
+    description: 'Nombre de membres à ignorer pour la pagination',
+    example: 0,
+  })
+  @ApiQuery({
+    name: 'role',
+    required: false,
+    enum: ['owner', 'admin', 'moderator', 'member'],
+    description: 'Filtrer par rôle',
+    example: 'member',
+  })
+  @ApiQuery({
+    name: 'isBanned',
+    required: false,
+    type: Boolean,
+    description: 'Filtrer par statut de bannissement',
+    example: false,
+  })
+  @ApiQuery({
+    name: 'isOnline',
+    required: false,
+    type: Boolean,
+    description: 'Filtrer par statut en ligne',
+    example: true,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Liste des membres récupérée avec succès',
+    type: PaginatedMembersDto,
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Non authentifié',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Vous devez être membre de cette communauté pour voir la liste des membres',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Communauté non trouvée',
+  })
+  async getCommunityMembers(
+    @Param('id') communityId: string,
+    @Query() getMembersDto: GetMembersDto,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<PaginatedMembersDto> {
+    try {
+      const userId = req.user.id;
+
+      // Définir l'ID de la communauté dans le DTO
+      getMembersDto.communityId = communityId;
+
+      const result = await firstValueFrom(
+        this.chatClient.send('community.getMembers', {
+          communityId,
+          userId,
+          getMembersDto,
+        }),
+      );
+
+      return result;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des membres:', error);
+
+      if (error.statusCode) {
+        throw new HttpException(error.message, error.statusCode);
+      }
+
+      // Map specific errors
+      if (
+        error.message?.includes('pas membre') ||
+        error.message?.includes('not a member') ||
+        error.message?.includes('devez être membre')
+      ) {
+        throw new HttpException(
+          'Vous devez être membre de cette communauté pour voir la liste des membres',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      if (
+        error.message?.includes('non trouvée') ||
+        error.message?.includes('not found')
+      ) {
+        throw new HttpException('Communauté non trouvée', HttpStatus.NOT_FOUND);
+      }
+
+      throw new HttpException(
+        'Erreur interne lors de la récupération des membres',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
