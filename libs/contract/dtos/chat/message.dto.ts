@@ -159,6 +159,50 @@ export class UpdateMessageDto {
 }
 
 /**
+ * DTO pour supprimer un message
+ */
+export class DeleteMessageDto {
+  /**
+   * ID du message à supprimer
+   * @example "123e4567-e89b-12d3-a456-426614174000"
+   */
+  @IsUUID('4', { message: "L'ID du message doit être un UUID valide" })
+  @IsNotEmpty()
+  messageId: string;
+
+  /**
+   * ID de l'utilisateur qui demande la suppression
+   * @example "123e4567-e89b-12d3-a456-426614174001"
+   */
+  @IsUUID('4', { message: "L'ID de l'utilisateur doit être un UUID valide" })
+  @IsNotEmpty()
+  deletedBy: string;
+
+  /**
+   * Nom d'utilisateur de celui qui supprime
+   * @example "moderator_user"
+   */
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2, {
+    message: "Le nom d'utilisateur doit contenir au moins 2 caractères",
+  })
+  @MaxLength(50, {
+    message: "Le nom d'utilisateur ne peut pas dépasser 50 caractères",
+  })
+  deletedByUsername: string;
+
+  /**
+   * Raison de la suppression (optionnelle)
+   * @example "Contenu inapproprié"
+   */
+  @IsString()
+  @IsOptional()
+  @MaxLength(500, { message: 'La raison ne peut pas dépasser 500 caractères' })
+  reason?: string;
+}
+
+/**
  * DTO de réponse pour un message
  */
 export class MessageResponseDto {

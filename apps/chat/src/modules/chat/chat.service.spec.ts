@@ -8,6 +8,7 @@ import {
   MessageType,
   GetMessagesDto,
   PaginatedMessagesDto,
+  DeleteMessageDto,
 } from '../../../../../libs/contract/dtos/chat';
 
 describe('ChatService', () => {
@@ -22,7 +23,9 @@ describe('ChatService', () => {
     message: {
       findFirst: jest.fn(),
       findMany: jest.fn(),
+      findUnique: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
     },
     userSession: {
       upsert: jest.fn(),
@@ -399,6 +402,196 @@ describe('ChatService', () => {
               gte: new Date('2024-01-01T00:00:00Z'),
               lte: new Date('2024-01-01T23:59:59Z'),
             }),
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('deleteMessage', () => {
+    const mockDeleteMessageDto: DeleteMessageDto = {
+      messageId: 'message-123',
+      deletedBy: 'user-123',
+      deletedByUsername: 'testuser',
+      reason: 'Test deletion reason',
+    };
+
+    const mockMessageToDelete = {
+      id: 'message-123',
+      communityId: 'community-123',
+      userId: 'user-123',
+      username: 'testuser',
+      content: 'Test message to delete',
+      messageType: 'text',
+      replyTo: null,
+      editedAt: null,
+      createdAt: new Date('2024-01-01T10:00:00Z'),
+      updatedAt: new Date('2024-01-01T10:00:00Z'),
+      deletedAt: null,
+      replyMessage: null,
+    };
+
+    const mockDeletedMessage = {
+      ...mockMessageToDelete,
+      deletedAt: new Date(),
+    };
+
+    it('should allow author to delete their own message', async () => {
+      // Arrange
+      prismaService.message.findUnique.mockResolvedValue(mockMessageToDelete);
+      prismaService.message.update.mockResolvedValue(mockDeletedMessage);
+
+      // Act
+      const result = await service.deleteMessage(mockDeleteMessageDto);
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.isDeleted).toBe(true);
+      expect(result.deletedAt).toBeDefined();
+      expect(eventClient.emit).toHaveBeenCalledWith(
+        'chat.message.deleted',
+        expect.any(Object),
+      );
+    });
+
+    it('should throw not found exception when message does not exist', async () => {
+      // Arrange
+      prismaService.message.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.deleteMessage(mockDeleteMessageDto)).rejects.toThrow(
+        new HttpException('Message non trouvé', HttpStatus.NOT_FOUND),
+      );
+    });
+
+    it('should throw bad request when message is already deleted', async () => {
+      // Arrange
+      const alreadyDeletedMessage = {
+        ...mockMessageToDelete,
+        deletedAt: new Date(),
+      };
+      prismaService.message.findUnique.mockResolvedValue(alreadyDeletedMessage);
+
+      // Act & Assert
+      await expect(service.deleteMessage(mockDeleteMessageDto)).rejects.toThrow(
+        new HttpException(
+          'Ce message a déjà été supprimé',
+          HttpStatus.BAD_REQUEST,
+        ),
+      );
+    });
+
+    it('should allow moderator to delete any message', async () => {
+      // Arrange
+      const moderatorDeleteDto = {
+        ...mockDeleteMessageDto,
+        deletedBy: 'moderator-456',
+        deletedByUsername: 'moderator',
+      };
+      const mockModeratorMembership = {
+        id: 'member-456',
+        communityId: 'community-123',
+        userId: 'moderator-456',
+        role: 'moderator',
+        isBanned: false,
+        bannedUntil: null,
+      };
+
+      prismaService.message.findUnique.mockResolvedValue(mockMessageToDelete);
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        mockModeratorMembership,
+      );
+      prismaService.message.update.mockResolvedValue(mockDeletedMessage);
+
+      // Act
+      const result = await service.deleteMessage(moderatorDeleteDto);
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(result.isDeleted).toBe(true);
+    });
+
+    it('should throw forbidden when non-member tries to delete', async () => {
+      // Arrange
+      const nonMemberDeleteDto = {
+        ...mockDeleteMessageDto,
+        deletedBy: 'non-member-789',
+      };
+      const messageFromDifferentUser = {
+        ...mockMessageToDelete,
+        userId: 'original-author-456',
+      };
+
+      prismaService.message.findUnique.mockResolvedValue(
+        messageFromDifferentUser,
+      );
+      prismaService.communityMember.findUnique.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.deleteMessage(nonMemberDeleteDto)).rejects.toThrow(
+        new HttpException(
+          'Vous devez être membre de cette communauté',
+          HttpStatus.FORBIDDEN,
+        ),
+      );
+    });
+
+    it('should throw forbidden when regular member tries to delete others message', async () => {
+      // Arrange
+      const regularMemberDeleteDto = {
+        ...mockDeleteMessageDto,
+        deletedBy: 'regular-member-789',
+      };
+      const messageFromDifferentUser = {
+        ...mockMessageToDelete,
+        userId: 'original-author-456',
+      };
+      const mockRegularMembership = {
+        id: 'member-789',
+        communityId: 'community-123',
+        userId: 'regular-member-789',
+        role: 'member',
+        isBanned: false,
+        bannedUntil: null,
+      };
+
+      prismaService.message.findUnique.mockResolvedValue(
+        messageFromDifferentUser,
+      );
+      prismaService.communityMember.findUnique.mockResolvedValue(
+        mockRegularMembership,
+      );
+
+      // Act & Assert
+      await expect(
+        service.deleteMessage(regularMemberDeleteDto),
+      ).rejects.toThrow(
+        new HttpException(
+          "Vous n'avez pas les permissions pour supprimer ce message",
+          HttpStatus.FORBIDDEN,
+        ),
+      );
+    });
+
+    it('should publish message deleted event after successful deletion', async () => {
+      // Arrange
+      prismaService.message.findUnique.mockResolvedValue(mockMessageToDelete);
+      prismaService.message.update.mockResolvedValue(mockDeletedMessage);
+
+      // Act
+      await service.deleteMessage(mockDeleteMessageDto);
+
+      // Assert
+      expect(eventClient.emit).toHaveBeenCalledWith(
+        'chat.message.deleted',
+        expect.objectContaining({
+          eventType: 'message.deleted',
+          messageId: 'message-123',
+          deletedBy: 'user-123',
+          metadata: expect.objectContaining({
+            reason: 'Test deletion reason',
+            deletedByUsername: 'testuser',
+            wasAuthorDeletion: true,
           }),
         }),
       );

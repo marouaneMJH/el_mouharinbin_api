@@ -14,8 +14,12 @@ import {
   ChatEventType,
   GetMessagesDto,
   PaginatedMessagesDto,
+  DeleteMessageDto,
 } from '../../../../../libs/contract/dtos/chat';
-import { MessageCreatedEvent } from '../../../../../libs/contract/interfaces/chat/chat-events.interface';
+import {
+  MessageCreatedEvent,
+  MessageDeletedEvent,
+} from '../../../../../libs/contract/interfaces/chat/chat-events.interface';
 
 @Injectable()
 export class ChatService {
@@ -362,5 +366,193 @@ export class ChatService {
       count: messageResponses.length,
       limit,
     };
+  }
+
+  /**
+   * Supprimer un message (soft delete)
+   * @param deleteMessageDto - Données de suppression du message
+   * @returns Le message supprimé
+   */
+  async deleteMessage(
+    deleteMessageDto: DeleteMessageDto,
+  ): Promise<MessageResponseDto> {
+    this.logger.debug('Suppression du message avec les données:', {
+      ...deleteMessageDto,
+      reason: deleteMessageDto.reason?.substring(0, 50) + '...',
+    });
+
+    // Récupérer le message à supprimer
+    const message = await this.prisma.message.findUnique({
+      where: {
+        id: deleteMessageDto.messageId,
+      },
+      include: {
+        replyMessage: {
+          select: {
+            id: true,
+            userId: true,
+            username: true,
+            content: true,
+            messageType: true,
+            createdAt: true,
+            deletedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!message) {
+      this.logger.warn(
+        `Tentative de suppression d'un message inexistant. Message ID: ${deleteMessageDto.messageId}`,
+      );
+      throw new HttpException('Message non trouvé', HttpStatus.NOT_FOUND);
+    }
+
+    // Vérifier si le message est déjà supprimé
+    if (message.deletedAt) {
+      this.logger.warn(
+        `Tentative de suppression d'un message déjà supprimé. Message ID: ${deleteMessageDto.messageId}`,
+      );
+      throw new HttpException(
+        'Ce message a déjà été supprimé',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Vérifier les permissions : auteur ou modérateur/admin
+    const isAuthor = message.userId === deleteMessageDto.deletedBy;
+
+    if (!isAuthor) {
+      // Si ce n'est pas l'auteur, vérifier si c'est un modérateur/admin de la communauté
+      const membership = await this.prisma.communityMember.findUnique({
+        where: {
+          communityId_userId: {
+            communityId: message.communityId,
+            userId: deleteMessageDto.deletedBy,
+          },
+        },
+      });
+
+      if (!membership) {
+        this.logger.warn(
+          `Tentative de suppression par un non-membre. User: ${deleteMessageDto.deletedBy}, Message: ${deleteMessageDto.messageId}`,
+        );
+        throw new HttpException(
+          'Vous devez être membre de cette communauté',
+          HttpStatus.FORBIDDEN,
+        );
+      }
+
+      // Vérifier si l'utilisateur a les permissions de modération
+      const hasModeratorPermissions =
+        membership.role === 'moderator' ||
+        membership.role === 'admin' ||
+        membership.role === 'owner';
+
+      if (!hasModeratorPermissions) {
+        this.logger.warn(
+          `Tentative de suppression sans permissions suffisantes. User: ${deleteMessageDto.deletedBy}, Role: ${membership.role}`,
+        );
+        throw new HttpException(
+          "Vous n'avez pas les permissions pour supprimer ce message",
+          HttpStatus.FORBIDDEN,
+        );
+      }
+    }
+
+    // Effectuer la suppression logique (soft delete)
+    const deletedMessage = await this.prisma.message.update({
+      where: {
+        id: deleteMessageDto.messageId,
+      },
+      data: {
+        deletedAt: new Date(),
+        // Optionnel : stocker qui a supprimé et pourquoi dans un champ metadata
+        content: message.content, // Garder le contenu original pour les logs
+      },
+      include: {
+        replyMessage: {
+          select: {
+            id: true,
+            userId: true,
+            username: true,
+            content: true,
+            messageType: true,
+            createdAt: true,
+            deletedAt: true,
+          },
+        },
+      },
+    });
+
+    this.logger.log(
+      `Message supprimé avec succès. ID: ${deletedMessage.id}, Supprimé par: ${deleteMessageDto.deletedBy}`,
+    );
+
+    // Créer l'objet de réponse
+    const messageResponse: MessageResponseDto = {
+      id: deletedMessage.id,
+      communityId: deletedMessage.communityId,
+      userId: deletedMessage.userId,
+      username: deletedMessage.username,
+      content: deletedMessage.content,
+      messageType: deletedMessage.messageType as any,
+      replyTo: deletedMessage.replyTo || undefined,
+      replyMessage: deletedMessage.replyMessage
+        ? {
+            id: deletedMessage.replyMessage.id,
+            communityId: deletedMessage.communityId,
+            userId: deletedMessage.replyMessage.userId,
+            username: deletedMessage.replyMessage.username,
+            content: deletedMessage.replyMessage.content,
+            messageType: deletedMessage.replyMessage.messageType as any,
+            replyTo: undefined,
+            editedAt: undefined,
+            createdAt: deletedMessage.replyMessage.createdAt,
+            updatedAt: deletedMessage.replyMessage.createdAt,
+            deletedAt: deletedMessage.replyMessage.deletedAt || undefined,
+            isEdited: false,
+            isDeleted: !!deletedMessage.replyMessage.deletedAt,
+          }
+        : undefined,
+      editedAt: deletedMessage.editedAt || undefined,
+      createdAt: deletedMessage.createdAt,
+      updatedAt: deletedMessage.updatedAt,
+      deletedAt: deletedMessage.deletedAt || undefined,
+      isEdited: !!deletedMessage.editedAt,
+      isDeleted: !!deletedMessage.deletedAt,
+    };
+
+    // Publier l'événement de suppression de message
+    const messageDeletedEvent: MessageDeletedEvent = {
+      eventType: ChatEventType.MESSAGE_DELETED,
+      timestamp: new Date(),
+      userId: deletedMessage.userId,
+      communityId: deletedMessage.communityId,
+      messageId: deletedMessage.id,
+      deletedBy: deleteMessageDto.deletedBy,
+      metadata: {
+        reason: deleteMessageDto.reason,
+        deletedByUsername: deleteMessageDto.deletedByUsername,
+        wasAuthorDeletion: isAuthor,
+        originalContent: deletedMessage.content,
+      },
+    };
+
+    try {
+      // Publier l'événement via RabbitMQ
+      this.eventClient.emit('chat.message.deleted', messageDeletedEvent);
+      this.logger.debug(
+        `Événement 'chat.message.deleted' publié pour le message ${deletedMessage.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Erreur lors de la publication de l'événement pour le message supprimé ${deletedMessage.id}:`,
+        error,
+      );
+      // Ne pas faire échouer la suppression si l'événement échoue
+    }
+
+    return messageResponse;
   }
 }

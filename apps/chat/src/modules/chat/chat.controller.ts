@@ -7,6 +7,7 @@ import {
   GetMessagesDto,
   GetMessagesWithUserDto,
   PaginatedMessagesDto,
+  DeleteMessageDto,
 } from '../../../../../libs/contract/dtos/chat';
 import { CHAT_MESSAGE_PATTERNS } from '../../../../../libs/contract/interfaces/chat/chat-events.interface';
 
@@ -37,5 +38,16 @@ export class ChatController {
       getMessagesDto,
       getMessagesDto.requesterId,
     );
+  }
+
+  /**
+   * Handler pour supprimer un message
+   * Écoute le pattern 'chat.message.delete' via RabbitMQ
+   */
+  @MessagePattern(CHAT_MESSAGE_PATTERNS.DELETE_MESSAGE)
+  async deleteMessage(
+    @Payload() deleteMessageDto: DeleteMessageDto,
+  ): Promise<MessageResponseDto> {
+    return await this.chatService.deleteMessage(deleteMessageDto);
   }
 }
