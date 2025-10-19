@@ -402,7 +402,7 @@ export class CommunityController {
   @ApiOperation({
     summary: 'Quitter une communauté',
     description:
-      "Permet à un utilisateur authentifié de quitter une communauté dont il est membre. Le propriétaire peut quitter uniquement si un autre admin existe ou si la communauté est vide.",
+      'Permet à un utilisateur authentifié de quitter une communauté dont il est membre. Le propriétaire peut quitter uniquement si un autre admin existe ou si la communauté est vide.',
   })
   @ApiParam({
     name: 'id',
@@ -416,7 +416,10 @@ export class CommunityController {
     schema: {
       type: 'object',
       properties: {
-        message: { type: 'string', example: 'Vous avez quitté la communauté avec succès' },
+        message: {
+          type: 'string',
+          example: 'Vous avez quitté la communauté avec succès',
+        },
         communityId: { type: 'string', format: 'uuid' },
         userId: { type: 'string', format: 'uuid' },
         leftAt: { type: 'string', format: 'date-time' },
@@ -425,16 +428,17 @@ export class CommunityController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Utilisateur non membre ou conditions de sortie non respectées',
+    description:
+      'Utilisateur non membre ou conditions de sortie non respectées',
     schema: {
       type: 'object',
       properties: {
-        message: { 
-          type: 'string', 
+        message: {
+          type: 'string',
           examples: [
-            'Vous n\'êtes pas membre de cette communauté',
-            'Le propriétaire ne peut pas quitter une communauté avec des membres sans désigner un autre admin'
-          ]
+            "Vous n'êtes pas membre de cette communauté",
+            'Le propriétaire ne peut pas quitter une communauté avec des membres sans désigner un autre admin',
+          ],
         },
         statusCode: { type: 'number', example: 400 },
       },
@@ -482,25 +486,31 @@ export class CommunityController {
       }
 
       // Map specific errors
-      if (error.message?.includes('pas membre') || error.message?.includes('not a member')) {
+      if (
+        error.message?.includes('pas membre') ||
+        error.message?.includes('not a member')
+      ) {
         throw new HttpException(
-          'Vous n\'êtes pas membre de cette communauté',
+          "Vous n'êtes pas membre de cette communauté",
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      if (error.message?.includes('propriétaire') || error.message?.includes('owner')) {
+      if (
+        error.message?.includes('propriétaire') ||
+        error.message?.includes('owner')
+      ) {
         throw new HttpException(
           'Le propriétaire ne peut pas quitter une communauté avec des membres sans désigner un autre admin',
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      if (error.message?.includes('non trouvée') || error.message?.includes('not found')) {
-        throw new HttpException(
-          'Communauté non trouvée',
-          HttpStatus.NOT_FOUND,
-        );
+      if (
+        error.message?.includes('non trouvée') ||
+        error.message?.includes('not found')
+      ) {
+        throw new HttpException('Communauté non trouvée', HttpStatus.NOT_FOUND);
       }
 
       throw new HttpException(

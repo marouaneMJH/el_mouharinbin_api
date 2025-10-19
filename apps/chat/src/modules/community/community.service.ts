@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../../../libs/contract/services/prisma.service';
 import {
   CreateCommunityDto,
@@ -11,7 +11,26 @@ import {
 
 @Injectable()
 export class CommunityService {
+  private readonly logger = new Logger(this.constructor.name);
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Convertit un rôle de base de données en enum Role
+   */
+  private mapDbRoleToEnum(dbRole: string): Role {
+    switch (dbRole) {
+      case 'member':
+        return Role.MEMBER;
+      case 'moderator':
+        return Role.MODERATOR;
+      case 'admin':
+        return Role.ADMIN;
+      case 'owner':
+        return Role.OWNER;
+      default:
+        return Role.MEMBER;
+    }
+  }
 
   /**
    * Créer une nouvelle communauté avec le créateur comme propriétaire
@@ -23,6 +42,10 @@ export class CommunityService {
     createCommunityDto: CreateCommunityDto,
     createdBy: string,
   ): Promise<CommunityResponseDto> {
+    this.logger.debug(
+      'Création de la communauté avec les données:',
+      createCommunityDto,
+    );
     try {
       // Vérifier si une communauté avec ce nom existe déjà
       const existingCommunity = await this.prisma.community.findUnique({
@@ -164,7 +187,7 @@ export class CommunityService {
       createdAt: community.createdAt,
       updatedAt: community.updatedAt,
       memberCount: community._count.members,
-      userRole: userMember?.role as Role,
+      userRole: userMember ? this.mapDbRoleToEnum(userMember.role) : undefined,
       isMember: !!userMember,
     };
 
@@ -244,7 +267,7 @@ export class CommunityService {
       createdAt: community.createdAt,
       updatedAt: community.updatedAt,
       memberCount: community._count.members,
-      userRole: userMember?.role as Role,
+      userRole: userMember ? this.mapDbRoleToEnum(userMember.role) : undefined,
       isMember: !!userMember,
       owner,
     };
@@ -317,7 +340,9 @@ export class CommunityService {
             createdAt: community.createdAt,
             updatedAt: community.updatedAt,
             memberCount: community._count.members,
-            userRole: userMember?.role as Role | undefined,
+            userRole: userMember
+              ? this.mapDbRoleToEnum(userMember.role)
+              : undefined,
             isMember: !!userMember,
           };
         },
@@ -441,7 +466,9 @@ export class CommunityService {
         createdAt: community.createdAt,
         updatedAt: community.updatedAt,
         memberCount: community._count.members,
-        userRole: community.members[0]?.role as Role,
+        userRole: community.members[0]
+          ? this.mapDbRoleToEnum(community.members[0].role)
+          : undefined,
         isMember: true, // Forcément true car on filtre par membership
       }));
     } catch (error) {
@@ -490,12 +517,9 @@ export class CommunityService {
       }
 
       // Vérifier si l'utilisateur est déjà membre
-      const existingMembership = await this.prisma.communityMember.findUnique({
+      const existingMembership = await this.prisma.communityMember.findFirst({
         where: {
-          communityId_userId: {
-            communityId,
-            userId,
-          },
+          AND: [{ communityId }, { userId }],
         },
       });
 
@@ -597,25 +621,19 @@ export class CommunityService {
       });
 
       if (!community) {
-        throw new HttpException(
-          'Communauté non trouvée',
-          HttpStatus.NOT_FOUND,
-        );
+        throw new HttpException('Communauté non trouvée', HttpStatus.NOT_FOUND);
       }
 
       // Vérifier si l'utilisateur est membre
-      const userMembership = await this.prisma.communityMember.findUnique({
+      const userMembership = await this.prisma.communityMember.findFirst({
         where: {
-          communityId_userId: {
-            communityId,
-            userId,
-          },
+          AND: [{ communityId }, { userId }],
         },
       });
 
       if (!userMembership) {
         throw new HttpException(
-          'Vous n\'êtes pas membre de cette communauté',
+          "Vous n'êtes pas membre de cette communauté",
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -625,12 +643,12 @@ export class CommunityService {
         // Le propriétaire peut quitter si:
         // 1. La communauté est vide (lui seul)
         // 2. Il existe au moins un autre admin
-        
+
         if (community._count.members > 1) {
           const hasOtherAdmin = community.members.some(
-            member => 
-              member.userId !== userId && 
-              (member.role === 'admin' || member.role === 'owner')
+            (member) =>
+              member.userId !== userId &&
+              (member.role === 'admin' || member.role === 'owner'),
           );
 
           if (!hasOtherAdmin) {
@@ -643,12 +661,9 @@ export class CommunityService {
       }
 
       // Supprimer le membership
-      await this.prisma.communityMember.delete({
+      await this.prisma.communityMember.deleteMany({
         where: {
-          communityId_userId: {
-            communityId,
-            userId,
-          },
+          AND: [{ communityId }, { userId }],
         },
       });
 
