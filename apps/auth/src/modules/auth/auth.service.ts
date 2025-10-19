@@ -70,7 +70,6 @@ export class AuthService {
       // role: user.role,
       status: user.status,
     };
-
     return {
       accessToken: this.generateAccessToken(payload),
       refreshToken: this.generateRefreshToken(payload),

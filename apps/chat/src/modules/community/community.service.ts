@@ -3,6 +3,9 @@ import { PrismaService } from '../../../../../libs/contract/services/prisma.serv
 import {
   CreateCommunityDto,
   CommunityResponseDto,
+  CommunityDetailResponseDto,
+  CommunityPaginationDto,
+  PaginatedCommunitiesDto,
   Role,
 } from '../../../../../libs/contract/dtos/chat';
 
@@ -166,6 +169,182 @@ export class CommunityService {
     };
 
     return response;
+  }
+
+  /**
+   * Récupérer les détails complets d'une communauté avec informations du propriétaire
+   * @param id - ID de la communauté
+   * @param userId - ID de l'utilisateur pour vérifier l'appartenance et les droits d'accès
+   * @returns Les détails de la communauté avec informations du propriétaire
+   */
+  async getCommunityDetails(
+    id: string,
+    userId: string,
+  ): Promise<CommunityDetailResponseDto> {
+    // D'abord vérifier si la communauté existe
+    const community = await this.prisma.community.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { members: true },
+        },
+        members: {
+          where: { userId },
+          select: { role: true },
+        },
+      },
+    });
+
+    if (!community) {
+      throw new HttpException('Communauté non trouvée', HttpStatus.NOT_FOUND);
+    }
+
+    // Vérifier les droits d'accès pour les communautés privées
+    const userMember = Array.isArray(community.members)
+      ? community.members[0]
+      : null;
+
+    if (!community.isPublic && !userMember) {
+      throw new HttpException(
+        'Accès refusé à cette communauté privée',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Récupérer les informations du propriétaire depuis la base de données
+    // Ici on fait une requête pour récupérer les infos basiques du propriétaire
+    let owner;
+    try {
+      // Note: Dans un vrai projet, ceci devrait être fait via un service users
+      // ou une API call au microservice users. Pour l'instant, on simule avec des données basiques.
+      owner = {
+        id: community.createdBy,
+        username: `user_${community.createdBy.slice(0, 8)}`, // Simplification temporaire
+        email: undefined, // Pas exposé pour la sécurité
+        avatarUrl: undefined, // À récupérer depuis le service users
+      };
+    } catch (error) {
+      // Si on ne peut pas récupérer les infos du propriétaire, on met des valeurs par défaut
+      owner = {
+        id: community.createdBy,
+        username: 'Utilisateur inconnu',
+        email: undefined,
+        avatarUrl: undefined,
+      };
+    }
+
+    const response: CommunityDetailResponseDto = {
+      id: community.id,
+      name: community.name,
+      description: community.description || undefined,
+      avatarUrl: community.avatarUrl || undefined,
+      isPublic: community.isPublic,
+      maxMembers: community.maxMembers,
+      createdBy: community.createdBy,
+      createdAt: community.createdAt,
+      updatedAt: community.updatedAt,
+      memberCount: community._count.members,
+      userRole: userMember?.role as Role,
+      isMember: !!userMember,
+      owner,
+    };
+
+    return response;
+  }
+
+  /**
+   * Récupérer toutes les communautés publiques avec pagination
+   * @param paginationDto - Paramètres de pagination
+   * @param userId - ID de l'utilisateur pour vérifier l'appartenance (optionnel)
+   * @returns Liste paginée des communautés publiques
+   */
+  async findPublicCommunitiesWithPagination(
+    paginationDto: CommunityPaginationDto,
+    userId?: string,
+  ): Promise<PaginatedCommunitiesDto> {
+    try {
+      const { limit = 20, offset = 0 } = paginationDto;
+
+      // Compter le nombre total de communautés publiques
+      const total = await this.prisma.community.count({
+        where: {
+          isPublic: true,
+        },
+      });
+
+      // Récupérer les communautés avec pagination
+      const communities = await this.prisma.community.findMany({
+        where: {
+          isPublic: true,
+        },
+        include: {
+          _count: {
+            select: {
+              members: true,
+            },
+          },
+          // Inclure les informations de membership si un userId est fourni
+          ...(userId && {
+            members: {
+              where: { userId },
+              select: { role: true },
+            },
+          }),
+        },
+        orderBy: {
+          createdAt: 'desc', // Tri par date de création descendante
+        },
+        take: limit,
+        skip: offset,
+      });
+
+      // Mapper les communautés vers le DTO de réponse
+      const communityDtos: CommunityResponseDto[] = communities.map(
+        (community) => {
+          const userMember =
+            userId && Array.isArray(community.members)
+              ? community.members[0]
+              : null;
+
+          return {
+            id: community.id,
+            name: community.name,
+            description: community.description || undefined,
+            avatarUrl: community.avatarUrl || undefined,
+            isPublic: community.isPublic,
+            maxMembers: community.maxMembers,
+            createdBy: community.createdBy,
+            createdAt: community.createdAt,
+            updatedAt: community.updatedAt,
+            memberCount: community._count.members,
+            userRole: userMember?.role as Role | undefined,
+            isMember: !!userMember,
+          };
+        },
+      );
+
+      // Construire la réponse paginée
+      const response: PaginatedCommunitiesDto = {
+        communities: communityDtos,
+        total,
+        count: communityDtos.length,
+        limit,
+        offset,
+        hasNext: offset + limit < total,
+        hasPrevious: offset > 0,
+      };
+
+      return response;
+    } catch (error) {
+      console.error(
+        'Erreur lors de la récupération des communautés publiques avec pagination:',
+        error,
+      );
+      throw new HttpException(
+        'Erreur lors de la récupération des communautés publiques',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   /**

@@ -20,6 +20,7 @@ export class AuthService {
   ) {}
 
   async login(loginPayload: LoginPayloadI) {
+    this.logger.debug(loginPayload.email);
     try {
       return await firstValueFrom(
         this.authClient.send(servicesPattern.auth.login, {
