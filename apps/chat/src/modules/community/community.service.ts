@@ -746,7 +746,13 @@ export class CommunityService {
         );
       }
 
-      const { limit = 50, offset = 0, role, isBanned, isOnline } = getMembersDto;
+      const {
+        limit = 50,
+        offset = 0,
+        role,
+        isBanned,
+        isOnline,
+      } = getMembersDto;
 
       // Construire les filtres
       const whereClause: any = {

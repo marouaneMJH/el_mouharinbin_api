@@ -527,9 +527,9 @@ export class CommunityController {
    */
   @Get(':id/members')
   @ApiOperation({
-    summary: 'Lister les membres d\'une communauté',
+    summary: "Lister les membres d'une communauté",
     description:
-      'Récupère la liste des membres d\'une communauté avec pagination. Seuls les membres de la communauté peuvent accéder à cette liste. Les informations incluent le rôle, la date d\'adhésion et le statut en ligne.',
+      "Récupère la liste des membres d'une communauté avec pagination. Seuls les membres de la communauté peuvent accéder à cette liste. Les informations incluent le rôle, la date d'adhésion et le statut en ligne.",
   })
   @ApiParam({
     name: 'id',
@@ -583,7 +583,8 @@ export class CommunityController {
   })
   @ApiResponse({
     status: 403,
-    description: 'Vous devez être membre de cette communauté pour voir la liste des membres',
+    description:
+      'Vous devez être membre de cette communauté pour voir la liste des membres',
   })
   @ApiResponse({
     status: 404,

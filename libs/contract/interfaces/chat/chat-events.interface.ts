@@ -136,6 +136,7 @@ export type ChatEvent =
  */
 export const CHAT_MESSAGE_PATTERNS = {
   // Messages
+  SEND_MESSAGE: 'chat.message.send',
   CREATE_MESSAGE: 'chat.message.create',
   UPDATE_MESSAGE: 'chat.message.update',
   DELETE_MESSAGE: 'chat.message.delete',
