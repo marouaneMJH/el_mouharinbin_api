@@ -75,18 +75,28 @@ This API Gateway provides comprehensive access to all NoFap platform services in
 
 ## 🔄 WebSocket Events
 Real-time events available through WebSocket connection:
+
+### Client → Server Events
 - \`community:join\` - Join a community room
 - \`community:leave\` - Leave a community room  
-- \`message:send\` - Send messages with rate limiting
+- \`message:send\` - Send messages with rate limiting (10/sec)
+- \`typing:start\` - Start typing indicator (1/sec rate limit)
+- \`typing:stop\` - Stop typing indicator
+
+### Server → Client Events  
 - \`message:created\` - Receive new messages
 - \`message:updated\` - Receive message updates
 - \`message:deleted\` - Receive message deletions
 - \`community:user-joined\` - User presence notifications
 - \`community:user-left\` - User departure notifications
+- \`typing:user-start\` - User started typing in community
+- \`typing:user-stop\` - User stopped typing in community
 
 ## 🛡️ Security Features
 - JWT authentication required for protected endpoints
 - Rate limiting on message sending (10 messages/second per user)
+- Rate limiting on typing events (1 event/second per user)
+- Auto-stop typing after 5 seconds of inactivity
 - Input validation and sanitization
 - CORS protection
 - Error handling and logging

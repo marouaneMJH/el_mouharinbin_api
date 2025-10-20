@@ -49,6 +49,12 @@ export class ChatGateway
   private connectedClients = new Map<string, AuthenticatedSocket>();
   // Rate limiting: Map<userId, Array<timestamp>>
   private messageRateLimit = new Map<string, number[]>();
+  // Typing rate limiting: Map<userId, lastTypingEventTime>
+  private typingRateLimit = new Map<string, number>();
+  // Typing state tracking: Map<userId, Set<communityId>>
+  private typingUsers = new Map<string, Set<string>>();
+  // Auto-stop typing timers: Map<userId-communityId, timeoutId>
+  private typingTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly chatService: ChatService,
@@ -207,6 +213,9 @@ export class ChatGateway
       // Remove session from chat service
       if (userData?.id) {
         await this.chatService.removeSession(userData.id);
+
+        // Clear typing timers and state for disconnected user
+        this.clearUserTypingTimers(userData.id);
 
         this.logger.log(
           `User ${userData.email} (ID: ${userData.id}) disconnected. ` +
@@ -721,6 +730,206 @@ export class ChatGateway
   }
 
   /**
+   * Handle typing start events
+   * Notifies other community members that a user is typing
+   */
+  @SubscribeMessage('typing:start')
+  async handleTypingStart(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { communityId: string },
+  ) {
+    try {
+      const userData = client.data?.user;
+      if (!userData) {
+        client.emit('error', {
+          event: 'typing:start',
+          message: 'Authentication required',
+        });
+        return;
+      }
+
+      // Validate payload
+      if (!payload?.communityId) {
+        client.emit('error', {
+          event: 'typing:start',
+          message: 'Community ID is required',
+        });
+        return;
+      }
+
+      // Check rate limiting
+      if (!this.checkTypingRateLimit(userData.id)) {
+        client.emit('error', {
+          event: 'typing:start',
+          message: 'Rate limit exceeded. Maximum 1 typing event per second.',
+        });
+        return;
+      }
+
+      // Verify user is member of the community
+      const roomName = `community:${payload.communityId}`;
+      const userRooms = Array.from(client.rooms);
+      if (!userRooms.includes(roomName)) {
+        client.emit('error', {
+          event: 'typing:start',
+          message:
+            'You must be a member of this community to send typing events',
+        });
+        return;
+      }
+
+      // Track typing state
+      if (!this.typingUsers.has(userData.id)) {
+        this.typingUsers.set(userData.id, new Set());
+      }
+      this.typingUsers.get(userData.id)!.add(payload.communityId);
+
+      // Clear existing timer for this user-community combination
+      const timerKey = `${userData.id}-${payload.communityId}`;
+      const existingTimer = this.typingTimers.get(timerKey);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+      }
+
+      // Set auto-stop timer (5 seconds)
+      const autoStopTimer = setTimeout(() => {
+        this.handleTypingAutoStop(userData.id, payload.communityId);
+      }, 5000);
+      this.typingTimers.set(timerKey, autoStopTimer);
+
+      // Broadcast typing start to other members in the community
+      client.to(roomName).emit('typing:user-start', {
+        userId: userData.id,
+        username: userData.username,
+        communityId: payload.communityId,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Send acknowledgment to sender
+      client.emit('typing:start-ack', {
+        success: true,
+        communityId: payload.communityId,
+        message: 'Typing indicator started',
+      });
+
+      this.logger.debug(
+        `User ${userData.username} (${userData.id}) started typing in community ${payload.communityId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error handling typing:start from user ${client.data?.user?.username}: ${error.message}`,
+        error.stack,
+      );
+
+      client.emit('error', {
+        event: 'typing:start',
+        message: 'Failed to process typing start event',
+        details: error.message,
+      });
+    }
+  }
+
+  /**
+   * Handle typing stop events
+   * Stops typing notifications for a user in a community
+   */
+  @SubscribeMessage('typing:stop')
+  async handleTypingStop(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { communityId: string },
+  ) {
+    try {
+      const userData = client.data?.user;
+      if (!userData) {
+        client.emit('error', {
+          event: 'typing:stop',
+          message: 'Authentication required',
+        });
+        return;
+      }
+
+      // Validate payload
+      if (!payload?.communityId) {
+        client.emit('error', {
+          event: 'typing:stop',
+          message: 'Community ID is required',
+        });
+        return;
+      }
+
+      this.stopUserTyping(userData.id, payload.communityId, userData.username);
+
+      // Send acknowledgment to sender
+      client.emit('typing:stop-ack', {
+        success: true,
+        communityId: payload.communityId,
+        message: 'Typing indicator stopped',
+      });
+
+      this.logger.debug(
+        `User ${userData.username} (${userData.id}) stopped typing in community ${payload.communityId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error handling typing:stop from user ${client.data?.user?.username}: ${error.message}`,
+        error.stack,
+      );
+
+      client.emit('error', {
+        event: 'typing:stop',
+        message: 'Failed to process typing stop event',
+        details: error.message,
+      });
+    }
+  }
+
+  /**
+   * Stop typing for a user in a specific community
+   */
+  private stopUserTyping(
+    userId: string,
+    communityId: string,
+    username?: string,
+  ) {
+    // Clear timer
+    const timerKey = `${userId}-${communityId}`;
+    const timer = this.typingTimers.get(timerKey);
+    if (timer) {
+      clearTimeout(timer);
+      this.typingTimers.delete(timerKey);
+    }
+
+    // Update typing state
+    const userTypingCommunities = this.typingUsers.get(userId);
+    if (userTypingCommunities) {
+      userTypingCommunities.delete(communityId);
+      if (userTypingCommunities.size === 0) {
+        this.typingUsers.delete(userId);
+      }
+    }
+
+    // Broadcast typing stop to community members
+    const roomName = `community:${communityId}`;
+    this.server.to(roomName).emit('typing:user-stop', {
+      userId: userId,
+      username: username || 'Unknown User',
+      communityId: communityId,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Handle automatic typing stop after inactivity
+   */
+  private handleTypingAutoStop(userId: string, communityId: string) {
+    this.logger.debug(
+      `Auto-stopping typing for user ${userId} in community ${communityId} due to inactivity`,
+    );
+
+    this.stopUserTyping(userId, communityId);
+  }
+
+  /**
    * Check rate limiting for message sending (10 messages per second)
    */
   private checkRateLimit(userId: string): {
@@ -755,6 +964,43 @@ export class ChatGateway
     this.messageRateLimit.set(userId, validMessages);
 
     return { allowed: true };
+  }
+
+  /**
+   * Check rate limiting for typing events (1 event per second)
+   */
+  private checkTypingRateLimit(userId: string): boolean {
+    const now = Date.now();
+    const minInterval = 1000; // 1 second
+
+    const lastTypingTime = this.typingRateLimit.get(userId);
+
+    if (lastTypingTime && now - lastTypingTime < minInterval) {
+      return false;
+    }
+
+    this.typingRateLimit.set(userId, now);
+    return true;
+  }
+
+  /**
+   * Clear typing timers for a user when they disconnect
+   */
+  private clearUserTypingTimers(userId: string) {
+    const keysToDelete = Array.from(this.typingTimers.keys()).filter((key) =>
+      key.startsWith(`${userId}-`),
+    );
+
+    keysToDelete.forEach((key) => {
+      const timer = this.typingTimers.get(key);
+      if (timer) {
+        clearTimeout(timer);
+        this.typingTimers.delete(key);
+      }
+    });
+
+    // Clear typing state for this user
+    this.typingUsers.delete(userId);
   }
 
   /**

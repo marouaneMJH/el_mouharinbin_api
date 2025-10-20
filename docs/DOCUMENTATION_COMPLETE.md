@@ -67,16 +67,20 @@ The NoFap API is fully documented with comprehensive Swagger/OpenAPI documentati
 | `join-community`  | Join community chat room  | 5/min      | ✅ JWT        |
 | `leave-community` | Leave community chat room | 5/min      | ✅ JWT        |
 | `send-message`    | Send message to community | 10/sec     | ✅ JWT        |
+| `typing:start`    | Start typing indicator    | 1/sec      | ✅ JWT        |
+| `typing:stop`     | Stop typing indicator     | No limit   | ✅ JWT        |
 
 #### Server → Client Events
 
-| Event              | Description                   | Trigger                 |
-| ------------------ | ----------------------------- | ----------------------- |
-| `message-received` | New message broadcast         | When user sends message |
-| `message-updated`  | Message edited notification   | When message is edited  |
-| `message-deleted`  | Message deletion notification | When message is deleted |
-| `community-joined` | User joined community         | When user joins         |
-| `community-left`   | User left community           | When user leaves        |
+| Event               | Description                   | Trigger                        |
+| ------------------- | ----------------------------- | ------------------------------ |
+| `message-received`  | New message broadcast         | When user sends message        |
+| `message-updated`   | Message edited notification   | When message is edited         |
+| `message-deleted`   | Message deletion notification | When message is deleted        |
+| `community-joined`  | User joined community         | When user joins                |
+| `community-left`    | User left community           | When user leaves               |
+| `typing:user-start` | User started typing indicator | When user starts typing        |
+| `typing:user-stop`  | User stopped typing indicator | When user stops typing/timeout |
 
 ## 🛡️ Security Documentation
 
@@ -91,8 +95,40 @@ The NoFap API is fully documented with comprehensive Swagger/OpenAPI documentati
 
 - **HTTP API:** 1000 requests/hour per user
 - **WebSocket Messages:** 10 messages/second per user
+- **Typing Indicators:** 1 event/second per user
 - **Authentication:** 5 attempts/minute per IP
 - **Community Operations:** 5/minute per user
+
+### ⌨️ Typing Indicators Feature
+
+**New Feature**: Real-time typing indicators show when users are composing messages.
+
+#### Features:
+
+- ✅ **Real-time Notifications** - Instant typing status updates
+- ✅ **Rate Limited** - 1 typing event per second per user
+- ✅ **Auto-stop Timer** - Automatically stops after 5 seconds of inactivity
+- ✅ **Community Scoped** - Only community members see typing status
+- ✅ **Memory Efficient** - Timers and state automatically cleaned up
+
+#### Usage Example:
+
+```javascript
+// Start typing indicator
+socket.emit('typing:start', { communityId: 'community-123' });
+
+// Stop typing indicator
+socket.emit('typing:stop', { communityId: 'community-123' });
+
+// Listen for other users typing
+socket.on('typing:user-start', (event) => {
+  showTypingIndicator(event.username);
+});
+
+socket.on('typing:user-stop', (event) => {
+  hideTypingIndicator(event.username);
+});
+```
 
 ### Error Handling
 
@@ -205,6 +241,7 @@ The NoFap API now has **complete and comprehensive documentation** covering:
 
 ✅ **All HTTP REST Endpoints** - Fully documented with Swagger/OpenAPI  
 ✅ **WebSocket Real-time Events** - Complete event documentation  
+✅ **Typing Indicators** - Real-time typing status with auto-stop timers  
 ✅ **Authentication & Security** - JWT setup and security practices  
 ✅ **Error Handling** - Comprehensive error response documentation  
 ✅ **Rate Limiting** - All limits documented with examples  
@@ -218,8 +255,9 @@ Developers can now:
 1. **Understand the entire API** through Swagger UI
 2. **Test all endpoints** interactively
 3. **Implement WebSocket features** using documented events
-4. **Handle errors properly** with documented error responses
-5. **Follow security best practices** with JWT examples
+4. **Add typing indicators** to enhance user experience
+5. **Handle errors properly** with documented error responses
+6. **Follow security best practices** with JWT examples
 
 **Access the complete documentation at:** `http://localhost:3000/api/docs`
 

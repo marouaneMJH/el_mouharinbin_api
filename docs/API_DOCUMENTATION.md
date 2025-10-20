@@ -210,6 +210,66 @@ Send a message to a community.
 }
 ```
 
+---
+
+##### `typing:start`
+
+Start typing indicator in a community.
+
+**Rate Limit:** 1 event per second per user
+
+**Payload:**
+
+```json
+{
+  "communityId": "community-123"
+}
+```
+
+**Success Response:**
+
+```json
+{
+  "status": "success",
+  "message": "Typing indicator started"
+}
+```
+
+**Rate Limit Error:**
+
+```json
+{
+  "status": "error",
+  "message": "Rate limit exceeded. Maximum 1 typing event per second.",
+  "error": "RATE_LIMIT_EXCEEDED"
+}
+```
+
+---
+
+##### `typing:stop`
+
+Stop typing indicator in a community.
+
+**Payload:**
+
+```json
+{
+  "communityId": "community-123"
+}
+```
+
+**Success Response:**
+
+```json
+{
+  "status": "success",
+  "message": "Typing indicator stopped"
+}
+```
+
+**Note:** Typing automatically stops after 5 seconds of inactivity.
+
 #### Server → Client Events
 
 ##### `message-received`
@@ -313,6 +373,42 @@ Broadcasted when a user leaves the community.
   "memberCount": 45
 }
 ```
+
+---
+
+##### `typing:user-start`
+
+Broadcasted when a user starts typing in a community.
+
+**Payload:**
+
+```json
+{
+  "userId": "user-456",
+  "username": "jane_doe",
+  "communityId": "community-123",
+  "timestamp": "2024-01-15T14:52:00Z"
+}
+```
+
+---
+
+##### `typing:user-stop`
+
+Broadcasted when a user stops typing in a community.
+
+**Payload:**
+
+```json
+{
+  "userId": "user-456",
+  "username": "jane_doe",
+  "communityId": "community-123",
+  "timestamp": "2024-01-15T14:52:30Z"
+}
+```
+
+**Note:** This event is automatically sent after 5 seconds of typing inactivity.
 
 ---
 
@@ -420,6 +516,40 @@ socket.on('community-left', (event) => {
   updateMemberCount(event.memberCount);
   showNotification(`${event.user.username} left the community`);
 });
+
+// Listen for typing indicators
+socket.on('typing:user-start', (event) => {
+  showTypingIndicator(event.userId, event.username, event.communityId);
+});
+
+socket.on('typing:user-stop', (event) => {
+  hideTypingIndicator(event.userId, event.communityId);
+});
+```
+
+#### 6. Typing Indicators
+
+```javascript
+// Start typing indicator
+socket.emit('typing:start', { communityId: 'community-123' });
+
+// Stop typing indicator
+socket.emit('typing:stop', { communityId: 'community-123' });
+
+// Auto-debounced typing implementation
+let typingTimer;
+function handleInputChange(communityId) {
+  // Start typing
+  socket.emit('typing:start', { communityId });
+
+  // Clear existing timer
+  clearTimeout(typingTimer);
+
+  // Set auto-stop timer (user stopped typing)
+  typingTimer = setTimeout(() => {
+    socket.emit('typing:stop', { communityId });
+  }, 2000); // Stop after 2 seconds of inactivity
+}
 ```
 
 ## Error Handling
@@ -517,6 +647,15 @@ class ChatClient {
     this.socket.on('community-joined', (event) => {
       this.updateMembersList(event);
     });
+
+    // Typing indicators
+    this.socket.on('typing:user-start', (event) => {
+      this.showTypingIndicator(event.userId, event.username);
+    });
+
+    this.socket.on('typing:user-stop', (event) => {
+      this.hideTypingIndicator(event.userId);
+    });
   }
 
   joinCommunity(communityId) {
@@ -529,6 +668,37 @@ class ChatClient {
 
   leaveCommunity(communityId) {
     this.socket.emit('leave-community', { communityId });
+  }
+
+  // Typing indicators
+  startTyping(communityId) {
+    this.socket.emit('typing:start', { communityId });
+  }
+
+  stopTyping(communityId) {
+    this.socket.emit('typing:stop', { communityId });
+  }
+
+  // Auto-debounced typing for input fields
+  setupTypingDebounce(inputElement, communityId) {
+    let typingTimer;
+    inputElement.addEventListener('input', () => {
+      this.startTyping(communityId);
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => {
+        this.stopTyping(communityId);
+      }, 2000);
+    });
+  }
+
+  showTypingIndicator(userId, username) {
+    const indicator = document.getElementById('typing-indicators');
+    indicator.innerHTML += `<div id="typing-${userId}">${username} is typing...</div>`;
+  }
+
+  hideTypingIndicator(userId) {
+    const indicator = document.getElementById(`typing-${userId}`);
+    if (indicator) indicator.remove();
   }
 
   displayMessage(message) {
