@@ -1,14 +1,149 @@
+
 generator client {
   provider = "prisma-client-js"
-  output   = "generated/client"
+  output   = "./generated/client"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+// THIS FILE IS AUTO-GENERATED
 
-// On inclut tous les fichiers secondaires
-// (disponible depuis Prisma 5.4+)
-import "apps/users/prisma/user.prisma"
-import "apps/chat/prisma/chat.prisma"
+// From /home/ghost/dev/projects/no_fap/no_fap_api/apps/chat/prisma/chat.prisma
+model Community {
+  id String @id @default(uuid()) @db.Uuid
+  name        String   @unique @db.VarChar(100)
+  description String?
+  avatarUrl   String?  @map("avatar_url") @db.VarChar(500)
+  isPublic    Boolean  @default(true) @map("is_public")
+  maxMembers  Int      @default(1000) @map("max_members")
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  members  CommunityMember[]
+  messages Message[]
+  sessions UserSession[]
+
+  @@map("communities")
+}
+
+model CommunityMember {
+  id String @id @default(uuid()) @db.Uuid
+  communityId String    @map("community_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  joinedAt    DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
+  role        MemberRole      @default(member)
+  isBanned    Boolean   @default(false) @map("is_banned")
+  bannedUntil DateTime? @map("banned_until") @db.Timestamptz(6)
+
+  // Relations
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([userId], map: "idx_community_members_user")
+  @@index([communityId], map: "idx_community_members_community")
+  @@map("community_members")
+}
+
+model Message {
+  id String @id @default(uuid()) @db.Uuid
+  communityId String      @map("community_id") @db.Uuid
+  userId      String      @map("user_id") @db.Uuid
+  username    String      @db.VarChar(100)
+  content     String
+  messageType MessageType @default(text) @map("message_type")
+  replyTo     String?     @map("reply_to") @db.Uuid
+  editedAt    DateTime?   @map("edited_at") @db.Timestamptz(6)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime?   @map("deleted_at") @db.Timestamptz(6)
+
+  // Relations
+  community    Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  replyMessage Message?  @relation("MessageReplies", fields: [replyTo], references: [id])
+  replies      Message[] @relation("MessageReplies")
+
+  @@index([communityId, createdAt(sort: Desc)], map: "idx_messages_community_created")
+  @@index([userId], map: "idx_messages_user")
+  @@map("messages")
+}
+
+model UserSession {
+  id String @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  username     String   @db.VarChar(100)
+  socketId     String   @map("socket_id") @db.VarChar(100)
+  communityId  String?  @map("community_id") @db.Uuid
+  connectedAt  DateTime @default(now()) @map("connected_at") @db.Timestamptz(6)
+  lastActivity DateTime @default(now()) @map("last_activity") @db.Timestamptz(6)
+  isActive     Boolean  @default(true) @map("is_active")
+
+  // Relations
+  community Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "idx_user_sessions_user")
+  @@index([communityId], map: "idx_user_sessions_community")
+  @@map("user_sessions")
+}
+
+enum MemberRole {
+  member
+  moderator
+  admin
+  owner
+}
+
+enum MessageType {
+  text
+  image
+  file
+  system
+}
+
+// From /home/ghost/dev/projects/no_fap/no_fap_api/apps/users/prisma/user.prisma
+model User {
+  id          String     @id @default(uuid())
+  email       String     @unique
+  password    String
+  name        String?
+  status      UserStatus @default(PENDING)
+  createdAt   DateTime   @default(now())
+  lastLoginAt DateTime?
+  updateDate  DateTime   @updatedAt
+  roles       UserRole[]
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  isActive    Boolean    @default(true)
+  description String?
+  users       UserRole[]
+}
+
+model UserRole {
+  id           String   @id @default(uuid())
+  userID       String
+  roleID       String
+  affectedDate DateTime @default(now())
+  role         Role     @relation(fields: [roleID], references: [id])
+  user         User     @relation(fields: [userID], references: [id])
+
+  @@unique([userID, roleID])
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+  DELETED
+}
+

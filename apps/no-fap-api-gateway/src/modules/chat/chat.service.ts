@@ -3,6 +3,7 @@ import { CreateChatDto } from './dto/create-chat.dto';
 import { UpdateChatDto } from './dto/update-chat.dto';
 import servicesOptions from '../../../../../libs/contract/config/services-options';
 import { ClientProxy } from '@nestjs/microservices';
+import { servicesPattern } from '../../../../../libs/contract/config/services-pattern';
 
 @Injectable()
 export class ChatService {
@@ -10,8 +11,23 @@ export class ChatService {
     @Inject(servicesOptions['chat'][0].name) private chatClient: ClientProxy,
   ) {}
 
-  test() {
-    console.log('test');
-    return 'hello';
+  async createSession({
+    userId,
+    username,
+    socketId,
+  }: {
+    userId: string;
+    username: string;
+    socketId: string;
+  }) {
+    return this.chatClient.send(servicesPattern.chat.create, {
+      userId,
+      username,
+      socketId,
+    });
+  }
+
+  async removeSession(userId: string) {
+    return this.chatClient.send(servicesPattern.chat.delete, { userId });
   }
 }

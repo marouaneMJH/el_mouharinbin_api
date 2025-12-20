@@ -1,0 +1,428 @@
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsUUID,
+  IsEnum,
+  MinLength,
+  MaxLength,
+  IsDateString,
+  Matches,
+} from 'class-validator';
+import { Type, Transform } from 'class-transformer';
+import { MessageType } from '../../enums/chat.enum';
+
+/**
+ * DTO pour créer un nouveau message
+ */
+export class CreateMessageDto {
+  /**
+   * ID de la communauté où envoyer le message
+   * @example "123e4567-e89b-12d3-a456-426614174000"
+   */
+  @IsUUID('4', { message: "L'ID de la communauté doit être un UUID valide" })
+  @IsNotEmpty()
+  communityId: string;
+
+  /**
+   * Contenu du message
+   * @example "Bonjour tout le monde !"
+   */
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1, { message: 'Le message ne peut pas être vide' })
+  @MaxLength(10000, {
+    message: 'Le message ne peut pas dépasser 10000 caractères',
+  })
+  content: string;
+
+  /**
+   * Type de message
+   * @default MessageType.TEXT
+   */
+  @IsEnum(MessageType, { message: 'Type de message invalide' })
+  @IsOptional()
+  messageType?: MessageType = MessageType.TEXT;
+
+  /**
+   * ID du message auquel ce message répond (optionnel)
+   * @example "123e4567-e89b-12d3-a456-426614174001"
+   */
+  @IsUUID('4', {
+    message: "L'ID du message de réponse doit être un UUID valide",
+  })
+  @IsOptional()
+  replyTo?: string;
+}
+
+/**
+ * DTO pour envoyer un message via RabbitMQ
+ */
+export class SendMessageDto {
+  /**
+   * ID de l'utilisateur qui envoie le message
+   * @example "123e4567-e89b-12d3-a456-426614174000"
+   */
+  @IsUUID('4', { message: "L'ID de l'utilisateur doit être un UUID valide" })
+  @IsNotEmpty()
+  userId: string;
+
+  /**
+   * Nom d'utilisateur
+   * @example "john_doe"
+   */
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2, {
+    message: "Le nom d'utilisateur doit contenir au moins 2 caractères",
+  })
+  @MaxLength(50, {
+    message: "Le nom d'utilisateur ne peut pas dépasser 50 caractères",
+  })
+  username: string;
+
+  /**
+   * ID de la communauté où envoyer le message
+   * @example "123e4567-e89b-12d3-a456-426614174000"
+   */
+  @IsUUID('4', { message: "L'ID de la communauté doit être un UUID valide" })
+  @IsNotEmpty()
+  communityId: string;
+
+  /**
+   * Contenu du message (sera sanitisé pour prévenir les attaques XSS)
+   * @example "Bonjour tout le monde !"
+   */
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(1, { message: 'Le message ne peut pas être vide' })
+  @MaxLength(10000, {
+    message: 'Le message ne peut pas dépasser 10000 caractères',
+  })
+  @Transform(({ value }) => {
+    // Sanitisation basique XSS - retire les balises HTML dangereuses
+    if (typeof value === 'string') {
+      return value
+        .replace(/<script[^>]*>.*?<\/script>/gi, '')
+        .replace(/<iframe[^>]*>.*?<\/iframe>/gi, '')
+        .replace(/<object[^>]*>.*?<\/object>/gi, '')
+        .replace(/<embed[^>]*>/gi, '')
+        .replace(/<link[^>]*>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '');
+    }
+    return value;
+  })
+  content: string;
+
+  /**
+   * Type de message
+   * @default MessageType.TEXT
+   */
+  @IsEnum(MessageType, { message: 'Type de message invalide' })
+  @IsOptional()
+  messageType?: MessageType = MessageType.TEXT;
+
+  /**
+   * ID du message auquel ce message répond (optionnel)
+   * @example "123e4567-e89b-12d3-a456-426614174001"
+   */
+  @IsUUID('4', {
+    message: "L'ID du message de réponse doit être un UUID valide",
+  })
+  @IsOptional()
+  replyTo?: string;
+}
+
+/**
+ * DTO pour mettre à jour un message existant
+ */
+export class UpdateMessageDto {
+  /**
+   * Nouveau contenu du message
+   * @example "Message modifié"
+   */
+  @IsString()
+  @IsOptional()
+  @MinLength(1, { message: 'Le message ne peut pas être vide' })
+  @MaxLength(2000, {
+    message: 'Le message ne peut pas dépasser 2000 caractères',
+  })
+  content?: string;
+
+  /**
+   * Nouveau type de message
+   */
+  @IsEnum(MessageType, { message: 'Type de message invalide' })
+  @IsOptional()
+  messageType?: MessageType;
+}
+
+/**
+ * DTO pour supprimer un message
+ */
+export class DeleteMessageDto {
+  /**
+   * ID du message à supprimer
+   * @example "123e4567-e89b-12d3-a456-426614174000"
+   */
+  @IsUUID('4', { message: "L'ID du message doit être un UUID valide" })
+  @IsNotEmpty()
+  messageId: string;
+
+  /**
+   * ID de l'utilisateur qui demande la suppression
+   * @example "123e4567-e89b-12d3-a456-426614174001"
+   */
+  @IsUUID('4', { message: "L'ID de l'utilisateur doit être un UUID valide" })
+  @IsNotEmpty()
+  deletedBy: string;
+
+  /**
+   * Nom d'utilisateur de celui qui supprime
+   * @example "moderator_user"
+   */
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2, {
+    message: "Le nom d'utilisateur doit contenir au moins 2 caractères",
+  })
+  @MaxLength(50, {
+    message: "Le nom d'utilisateur ne peut pas dépasser 50 caractères",
+  })
+  deletedByUsername: string;
+
+  /**
+   * Raison de la suppression (optionnelle)
+   * @example "Contenu inapproprié"
+   */
+  @IsString()
+  @IsOptional()
+  @MaxLength(500, { message: 'La raison ne peut pas dépasser 500 caractères' })
+  reason?: string;
+}
+
+/**
+ * DTO de réponse pour un message
+ */
+export class MessageResponseDto {
+  /**
+   * Identifiant unique du message
+   */
+  id: string;
+
+  /**
+   * ID de la communauté
+   */
+  communityId: string;
+
+  /**
+   * ID de l'utilisateur qui a envoyé le message
+   */
+  userId: string;
+
+  /**
+   * Nom d'utilisateur de l'expéditeur
+   */
+  username: string;
+
+  /**
+   * Contenu du message
+   */
+  content: string;
+
+  /**
+   * Type de message
+   */
+  messageType: MessageType;
+
+  /**
+   * ID du message auquel celui-ci répond
+   */
+  replyTo?: string;
+
+  /**
+   * Message auquel celui-ci répond (si applicable)
+   */
+  replyMessage?: MessageResponseDto;
+
+  /**
+   * Date de modification (si modifié)
+   */
+  editedAt?: Date;
+
+  /**
+   * Date de création
+   */
+  createdAt: Date;
+
+  /**
+   * Date de dernière mise à jour
+   */
+  updatedAt: Date;
+
+  /**
+   * Date de suppression (si supprimé)
+   */
+  deletedAt?: Date;
+
+  /**
+   * Indique si le message a été modifié
+   */
+  isEdited?: boolean;
+
+  /**
+   * Indique si le message a été supprimé
+   */
+  isDeleted?: boolean;
+
+  /**
+   * Nombre de réponses à ce message
+   */
+  replyCount?: number;
+}
+
+/**
+ * DTO pour les filtres de récupération des messages
+ */
+export class GetMessagesDto {
+  /**
+   * ID de la communauté
+   */
+  @IsUUID('4', { message: "L'ID de la communauté doit être un UUID valide" })
+  @IsNotEmpty()
+  communityId: string;
+
+  /**
+   * Nombre maximum de messages à retourner
+   */
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number = 50;
+
+  /**
+   * ID du message à partir duquel commencer (pour la pagination)
+   */
+  @IsUUID('4', { message: "L'ID du curseur doit être un UUID valide" })
+  @IsOptional()
+  cursor?: string;
+
+  /**
+   * Filtrer par type de message
+   */
+  @IsEnum(MessageType, { message: 'Type de message invalide' })
+  @IsOptional()
+  messageType?: MessageType;
+
+  /**
+   * Filtrer par utilisateur
+   */
+  @IsUUID('4', { message: "L'ID utilisateur doit être un UUID valide" })
+  @IsOptional()
+  userId?: string;
+
+  /**
+   * Date de début pour la recherche
+   */
+  @IsDateString({}, { message: 'La date de début doit être valide' })
+  @IsOptional()
+  startDate?: string;
+
+  /**
+   * Date de fin pour la recherche
+   */
+  @IsDateString({}, { message: 'La date de fin doit être valide' })
+  @IsOptional()
+  endDate?: string;
+}
+
+/**
+ * DTO pour la recherche de messages
+ */
+export class SearchMessagesDto {
+  /**
+   * ID de la communauté où chercher
+   */
+  @IsUUID('4', { message: "L'ID de la communauté doit être un UUID valide" })
+  @IsNotEmpty()
+  communityId: string;
+
+  /**
+   * Terme de recherche
+   */
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(2, {
+    message: 'Le terme de recherche doit contenir au moins 2 caractères',
+  })
+  @MaxLength(100, {
+    message: 'Le terme de recherche ne peut pas dépasser 100 caractères',
+  })
+  query: string;
+
+  /**
+   * Nombre maximum de résultats
+   */
+  @IsOptional()
+  @Type(() => Number)
+  limit?: number = 20;
+
+  /**
+   * Décalage pour la pagination
+   */
+  @IsOptional()
+  @Type(() => Number)
+  offset?: number = 0;
+}
+
+/**
+ * DTO pour la réponse paginée des messages
+ */
+export class PaginatedMessagesDto {
+  /**
+   * Liste des messages
+   */
+  messages: MessageResponseDto[];
+
+  /**
+   * Indique s'il y a des messages suivants
+   */
+  hasNextPage: boolean;
+
+  /**
+   * Indique s'il y a des messages précédents
+   */
+  hasPrevPage: boolean;
+
+  /**
+   * ID du curseur pour la page suivante
+   */
+  nextCursor?: string;
+
+  /**
+   * ID du curseur pour la page précédente
+   */
+  prevCursor?: string;
+
+  /**
+   * Nombre total de messages retournés
+   */
+  count: number;
+
+  /**
+   * Limite utilisée pour cette requête
+   */
+  limit: number;
+}
+
+/**
+ * DTO pour récupérer les messages avec l'ID utilisateur
+ */
+export class GetMessagesWithUserDto extends GetMessagesDto {
+  /**
+   * ID de l'utilisateur qui fait la demande
+   */
+  @IsUUID('4', { message: "L'ID de l'utilisateur doit être un UUID valide" })
+  @IsNotEmpty()
+  requesterId: string;
+}

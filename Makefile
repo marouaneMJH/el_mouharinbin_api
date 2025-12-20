@@ -19,9 +19,12 @@ down:
 logs:
 	$(DC) logs -f
 
-db:
+db-shell:
 	$(DC) exec db sh
 
+connect-db:
+	@export $$(grep -v '^#' $(ENV_FILE) | xargs) && \
+	$(DC) exec db psql -U $$POSTGRES_USER -d $$POSTGRES_DB
 restart:
 	$(DC) down && $(DC) up -d
 
@@ -29,6 +32,14 @@ rebuild:
 	$(DC) down
 	$(DC) build --no-cache
 	$(DC) up -d
+
+
+
+rabbit-view:
+	@firefox-developer --safe-mode "http://localhost:15672/" >/dev/null 2>&1 &
+
+
+
 
 # === DB CONNECTION (requires psql inside container) ===
 db-connect:

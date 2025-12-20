@@ -62,7 +62,7 @@ const serviceFunctionalities: Record<ServiceName, Functionalities[]> = {
     Functionalities.REFRESH,
   ],
   mail: [Functionalities.ACTIVATE, Functionalities.WELCOME],
-  chat: [],
+  chat: [Functionalities.CREATE, Functionalities.DELETE],
 };
 
 // Pattern dynamic generator type-safe

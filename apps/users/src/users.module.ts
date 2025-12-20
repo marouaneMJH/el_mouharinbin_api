@@ -1,4 +1,4 @@
-import { PrismaModule } from '../prisma/src/prisma.module';
+import { PrismaModule } from '../../../libs/contract/modules/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { Module } from '@nestjs/common';
 import { UsersService } from './users.service';
