@@ -19,6 +19,7 @@ export class AuthController {
   @MessagePattern(servicesPattern.auth.login)
   @UseGuards(LocalGuard)
   login(@Payload() user: UserI) {
+    this.logger.debug(`User inside login ${JSON.stringify(user)}`);
     return this.authService.login(user);
   }
 

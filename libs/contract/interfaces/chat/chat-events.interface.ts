@@ -136,6 +136,7 @@ export type ChatEvent =
  */
 export const CHAT_MESSAGE_PATTERNS = {
   // Messages
+  SEND_MESSAGE: 'chat.message.send',
   CREATE_MESSAGE: 'chat.message.create',
   UPDATE_MESSAGE: 'chat.message.update',
   DELETE_MESSAGE: 'chat.message.delete',
@@ -155,7 +156,7 @@ export const CHAT_MESSAGE_PATTERNS = {
   UPDATE_MEMBER_ROLE: 'chat.member.update_role',
   BAN_MEMBER: 'chat.member.ban',
   UNBAN_MEMBER: 'chat.member.unban',
-  GET_MEMBERS: 'chat.member.get',
+  GET_MEMBERS: 'community.getMembers',
 
   // Sessions
   CONNECT_SOCKET: 'chat.session.connect',

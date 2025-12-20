@@ -190,6 +190,21 @@ export class CommunityResponseDto {
 }
 
 /**
+ * DTO de réponse détaillée pour une communauté avec informations du propriétaire
+ */
+export class CommunityDetailResponseDto extends CommunityResponseDto {
+  /**
+   * Informations du propriétaire de la communauté
+   */
+  owner: {
+    id: string;
+    username: string;
+    email?: string;
+    avatarUrl?: string;
+  };
+}
+
+/**
  * DTO pour les filtres de recherche de communautés
  */
 export class CommunitySearchDto {
@@ -229,4 +244,70 @@ export class CommunitySearchDto {
   @Min(0)
   @Type(() => Number)
   offset?: number = 0;
+}
+
+/**
+ * DTO pour les paramètres de pagination des communautés
+ */
+export class CommunityPaginationDto {
+  /**
+   * Nombre maximum de résultats par page
+   * @default 20
+   */
+  @IsInt()
+  @IsOptional()
+  @Min(1, { message: 'La limite doit être au moins 1' })
+  @Max(100, { message: 'La limite ne peut pas dépasser 100' })
+  @Type(() => Number)
+  limit?: number = 20;
+
+  /**
+   * Décalage pour la pagination (nombre d'éléments à ignorer)
+   * @default 0
+   */
+  @IsInt()
+  @IsOptional()
+  @Min(0, { message: "L'offset doit être positif ou nul" })
+  @Type(() => Number)
+  offset?: number = 0;
+}
+
+/**
+ * DTO de réponse paginée pour les communautés
+ */
+export class PaginatedCommunitiesDto {
+  /**
+   * Liste des communautés
+   */
+  communities: CommunityResponseDto[];
+
+  /**
+   * Nombre total de communautés disponibles
+   */
+  total: number;
+
+  /**
+   * Nombre de communautés dans cette page
+   */
+  count: number;
+
+  /**
+   * Limite utilisée pour cette requête
+   */
+  limit: number;
+
+  /**
+   * Offset utilisé pour cette requête
+   */
+  offset: number;
+
+  /**
+   * Indique s'il y a une page suivante
+   */
+  hasNext: boolean;
+
+  /**
+   * Indique s'il y a une page précédente
+   */
+  hasPrevious: boolean;
 }

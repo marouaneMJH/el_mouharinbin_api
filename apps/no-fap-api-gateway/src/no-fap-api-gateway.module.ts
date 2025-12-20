@@ -9,6 +9,8 @@ import { AuthModule } from './modules/auth/auth.module';
 import { JwtStrategy } from '../../../libs/contract/strategies/jwt.strategy';
 import { AppConfigModule } from '../../../libs/contract/config/config.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { CommunityModule } from './modules/community/community.module';
+import { MessageModule } from './modules/message/message.module';
 import configuration from '../../../libs/contract/config/configuration';
 
 console.log(__dirname);
@@ -23,6 +25,8 @@ console.log(__dirname);
     UsersModule,
     AuthModule,
     ChatModule,
+    CommunityModule,
+    MessageModule,
   ],
   controllers: [NoFapApiGatewayController],
   providers: [NoFapApiGatewayService, JwtStrategy],

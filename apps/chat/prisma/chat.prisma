@@ -10,7 +10,7 @@ datasource db {
 
 // Communities table
 model Community {
-  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
   name        String   @unique @db.VarChar(100)
   description String?
   avatarUrl   String?  @map("avatar_url") @db.VarChar(500)
@@ -30,7 +30,7 @@ model Community {
 
 // Community members table
 model CommunityMember {
-  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
   communityId String    @map("community_id") @db.Uuid
   userId      String    @map("user_id") @db.Uuid
   joinedAt    DateTime  @default(now()) @map("joined_at") @db.Timestamptz(6)
@@ -49,7 +49,7 @@ model CommunityMember {
 
 // Messages table
 model Message {
-  id          String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
   communityId String      @map("community_id") @db.Uuid
   userId      String      @map("user_id") @db.Uuid
   username    String      @db.VarChar(100)
@@ -73,7 +73,7 @@ model Message {
 
 // User sessions table
 model UserSession {
-  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  id String @id @default(uuid()) @db.Uuid
   userId       String   @map("user_id") @db.Uuid
   username     String   @db.VarChar(100)
   socketId     String   @map("socket_id") @db.VarChar(100)
